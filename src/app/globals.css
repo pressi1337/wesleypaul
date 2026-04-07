@@ -1,26 +1,285 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* ── Brand colors extracted from logo ─────── */
+  --primary: #2070B8;        /* "WESLEY PAUL" medium blue */
+  --primary-dark: #164F8A;   /* darker shade */
+  --primary-light: #3A8DD4;  /* lighter shade */
+  --accent: #C0185A;         /* globe grid crimson-rose */
+  --accent-dark: #960E47;    /* darker crimson */
+  --gold: #f5a623;           /* warm gold accent */
+  --gray-text: #4A4E69;      /* "INTERNATIONAL MINISTRIES" gray */
+  --white: #ffffff;
+  --off-white: #f8f9fa;
+  --light-gray: #e9ecef;
+  --mid-gray: #6c757d;
+  --dark: #0a1523;           /* dark navbar/footer */
+  --text: #2d3748;
+  /* Aliases used across inner pages */
+  --navy: #2070B8;
+  --navy-dark: #0a1523;
+  --red: #C0185A;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-primary: var(--primary);
+  --color-primary-dark: var(--primary-dark);
+  --color-accent: var(--accent);
+  --color-gold: var(--gold);
+  --font-sans: var(--font-poppins), system-ui, sans-serif;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-poppins), system-ui, sans-serif;
+  color: var(--text);
+  background: #fff;
+  line-height: 1.7;
+}
+
+/* ── Buttons ───────────────────────────────── */
+.btn-primary {
+  display: inline-block;
+  background: var(--accent);
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.875rem;
+  letter-spacing: 0.02em;
+  padding: 0.7rem 1.75rem;
+  border-radius: 4px;
+  border: 2px solid var(--accent);
+  transition: background 0.2s, transform 0.15s;
+  text-decoration: none;
+  cursor: pointer;
+}
+.btn-primary:hover {
+  background: var(--accent-dark);
+  border-color: var(--accent-dark);
+  transform: translateY(-1px);
+}
+
+.btn-outline {
+  display: inline-block;
+  background: transparent;
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.875rem;
+  letter-spacing: 0.02em;
+  padding: 0.7rem 1.75rem;
+  border-radius: 4px;
+  border: 2px solid #fff;
+  transition: all 0.2s;
+  text-decoration: none;
+  cursor: pointer;
+}
+.btn-outline:hover {
+  background: #fff;
+  color: var(--primary);
+}
+
+.btn-outline-accent {
+  display: inline-block;
+  background: transparent;
+  color: var(--accent);
+  font-weight: 600;
+  font-size: 0.875rem;
+  padding: 0.7rem 1.75rem;
+  border-radius: 4px;
+  border: 2px solid var(--accent);
+  transition: all 0.2s;
+  text-decoration: none;
+  cursor: pointer;
+}
+.btn-outline-accent:hover {
+  background: var(--accent);
+  color: #fff;
+}
+
+/* ── Section headings ───────────────────────── */
+.section-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--accent);
+  display: block;
+  margin-bottom: 0.5rem;
+}
+
+.section-title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--primary);
+  line-height: 1.2;
+}
+
+.section-divider {
+  width: 50px;
+  height: 3px;
+  background: var(--accent);
+  margin: 0.75rem auto 1.5rem;
+  border-radius: 2px;
+}
+
+.section-divider-left {
+  width: 50px;
+  height: 3px;
+  background: var(--accent);
+  margin: 0.75rem 0 1.5rem;
+  border-radius: 2px;
+}
+
+/* ── Cards ──────────────────────────────────── */
+.card-hover {
+  background: #fff;
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow: 0 2px 15px rgba(0,0,0,0.08);
+  transition: transform 0.25s, box-shadow 0.25s;
+}
+.card-hover:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.14);
+}
+
+/* ── Hide broken image alt text ─────────────── */
+img {
+  color: transparent;
+}
+
+/* ── Form elements ───────────────────────────── */
+input[type="text"],
+input[type="email"],
+input[type="tel"],
+input[type="date"],
+textarea,
+select {
+  display: block;
+  width: 100%;
+  padding: 12px 16px;
+  font-size: 14px;
+  font-family: inherit;
+  color: #2d3748;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+input[type="text"]:focus,
+input[type="email"]:focus,
+input[type="tel"]:focus,
+input[type="date"]:focus,
+textarea:focus,
+select:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(32, 112, 184, 0.12);
+}
+textarea {
+  resize: vertical;
+  min-height: 120px;
+}
+label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--primary);
+  margin-bottom: 6px;
+}
+
+/* ── Page header (inner pages) ───────────────── */
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 80px 24px;
+  min-height: 260px;
+  background: linear-gradient(135deg, var(--navy-dark) 0%, var(--primary) 100%);
+  color: #fff;
+}
+.page-header h1 {
+  font-size: clamp(2rem, 4vw, 3rem);
+  font-weight: 700;
+  margin-bottom: 12px;
+}
+
+/* ── Card (no hover) ────────────────────────── */
+.card {
+  background: #fff;
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow: 0 2px 15px rgba(0,0,0,0.08);
+}
+
+/* ── Secondary / navy buttons ───────────────── */
+.btn-secondary {
+  display: inline-block;
+  background: transparent;
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.875rem;
+  letter-spacing: 0.02em;
+  padding: 0.7rem 1.75rem;
+  border-radius: 4px;
+  border: 2px solid rgba(255,255,255,0.6);
+  transition: all 0.2s;
+  text-decoration: none;
+  cursor: pointer;
+}
+.btn-secondary:hover {
+  background: #fff;
+  border-color: #fff;
+  color: var(--primary);
+}
+
+.btn-navy {
+  display: inline-block;
+  background: transparent;
+  color: var(--navy);
+  font-weight: 600;
+  font-size: 0.875rem;
+  padding: 0.7rem 1.75rem;
+  border-radius: 4px;
+  border: 2px solid var(--navy);
+  transition: all 0.2s;
+  text-decoration: none;
+  cursor: pointer;
+}
+.btn-navy:hover {
+  background: var(--navy);
+  color: #fff;
+}
+
+/* ── WhatsApp floating btn ──────────────────── */
+.whatsapp-float {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  width: 52px;
+  height: 52px;
+  background: #25D366;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  text-decoration: none;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+  z-index: 999;
+  animation: pulse 2s infinite;
+}
+@keyframes pulse {
+  0% { box-shadow: 0 0 0 0 rgba(37,211,102,0.5); }
+  70% { box-shadow: 0 0 0 12px rgba(37,211,102,0); }
+  100% { box-shadow: 0 0 0 0 rgba(37,211,102,0); }
 }
