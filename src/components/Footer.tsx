@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { MapPin, Mail, Phone, Clock, Globe } from "lucide-react";
+import Image from "next/image";
+import { MapPin, Mail, Phone, Clock } from "lucide-react";
 import { FacebookIcon, YoutubeIcon, InstagramIcon, TwitterXIcon, TiktokIcon } from "./SocialIcons";
 
 const quickLinks = [
@@ -47,7 +48,7 @@ export default function Footer() {
   return (
     <footer style={{ backgroundColor: BG, color: "#fff" }}>
       {/* Top CTA strip */}
-      <div style={{ backgroundColor: "#2070B8", padding: "20px 24px" }}>
+      <div style={{ backgroundColor: "#1B3A76", padding: "20px 24px" }}>
         <div
           style={{
             maxWidth: "1280px",
@@ -69,7 +70,7 @@ export default function Footer() {
               alignItems: "center",
               gap: "6px",
               padding: "10px 24px",
-              backgroundColor: "#C0185A",
+              backgroundColor: "#9B1030",
               color: "#fff",
               fontWeight: 700,
               fontSize: "13px",
@@ -78,8 +79,8 @@ export default function Footer() {
               whiteSpace: "nowrap",
               transition: "background-color 0.2s",
             }}
-            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#a00b2f")}
-            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#C0185A")}
+            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#720B23")}
+            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#9B1030")}
           >
             Give Now
           </Link>
@@ -99,17 +100,15 @@ export default function Footer() {
 
           {/* ── Column 1: Brand ── */}
           <div style={{ gridColumn: "span 1" }}>
-            {/* Logo mark */}
-            <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "20px" }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                <Globe size={36} strokeWidth={1.5} style={{ color: "#C0185A" }} />
-              </div>
-              <div>
-                <div style={{ color: "#fff", fontWeight: 800, fontSize: "15px", lineHeight: 1.1 }}>Wesley Paul</div>
-                <div style={{ color: "rgba(255,255,255,0.4)", fontSize: "9px", letterSpacing: "0.14em", textTransform: "uppercase" }}>
-                  International Ministries
-                </div>
-              </div>
+            {/* Logo */}
+            <div style={{ marginBottom: "20px" }}>
+              <Image
+                src="/logo-nav.png"
+                alt="Wesley Paul International Ministries"
+                width={200}
+                height={64}
+                style={{ objectFit: "contain", display: "block" }}
+              />
             </div>
 
             <p style={{ fontSize: "13px", lineHeight: 1.8, color: FT, marginBottom: "24px" }}>
@@ -140,7 +139,7 @@ export default function Footer() {
                     flexShrink: 0,
                   }}
                   onMouseEnter={(e) => {
-                    (e.currentTarget as HTMLElement).style.backgroundColor = "#C0185A";
+                    (e.currentTarget as HTMLElement).style.backgroundColor = "#9B1030";
                     (e.currentTarget as HTMLElement).style.color = "#fff";
                   }}
                   onMouseLeave={(e) => {
@@ -185,7 +184,7 @@ export default function Footer() {
                     onMouseEnter={(e) => (e.currentTarget.style.color = FT_HOVER)}
                     onMouseLeave={(e) => (e.currentTarget.style.color = FT)}
                   >
-                    <span style={{ color: "#C0185A", fontSize: "14px", lineHeight: 1 }}>›</span>
+                    <span style={{ color: "#9B1030", fontSize: "14px", lineHeight: 1 }}>›</span>
                     {l.label}
                   </Link>
                 </li>
@@ -224,7 +223,7 @@ export default function Footer() {
                     onMouseEnter={(e) => (e.currentTarget.style.color = FT_HOVER)}
                     onMouseLeave={(e) => (e.currentTarget.style.color = FT)}
                   >
-                    <span style={{ color: "#C0185A", fontSize: "14px", lineHeight: 1 }}>›</span>
+                    <span style={{ color: "#9B1030", fontSize: "14px", lineHeight: 1 }}>›</span>
                     {l.label}
                   </Link>
                 </li>
@@ -249,7 +248,7 @@ export default function Footer() {
             <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
               {contactDetails.map(({ icon: Icon, lines, href }, i) => (
                 <li key={i} style={{ display: "flex", alignItems: "flex-start", gap: "12px", marginBottom: "16px" }}>
-                  <Icon size={14} style={{ color: "#C0185A", marginTop: "2px", flexShrink: 0 }} />
+                  <Icon size={14} style={{ color: "#9B1030", marginTop: "2px", flexShrink: 0 }} />
                   <div>
                     {lines.map((line) =>
                       href ? (
@@ -277,7 +276,7 @@ export default function Footer() {
                 display: "inline-block",
                 marginTop: "8px",
                 padding: "9px 20px",
-                backgroundColor: "#2070B8",
+                backgroundColor: "#1B3A76",
                 color: "#fff",
                 fontSize: "12px",
                 fontWeight: 700,
@@ -288,7 +287,7 @@ export default function Footer() {
                 transition: "background-color 0.2s",
               }}
               onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#1a5a9a")}
-              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#2070B8")}
+              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#1B3A76")}
             >
               Book Dr. Wesley
             </Link>

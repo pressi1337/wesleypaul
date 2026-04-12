@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState, useEffect, useRef } from "react";
-import { Menu, X, ChevronDown, Heart, Globe } from "lucide-react";
+import { Menu, X, ChevronDown, Heart, ChevronRight } from "lucide-react";
 import { FacebookIcon, YoutubeIcon, InstagramIcon } from "./SocialIcons";
 
 const aboutLinks = [
@@ -35,80 +35,93 @@ const socialLinks = [
 
 const NAV_BG = "#0d1523";
 const NAV_BORDER = "rgba(255,255,255,0.07)";
+const ACCENT = "#9B1030";
+const ACCENT_DARK = "#720B23";
+const DROP_BG = "#0f1e35";
+
+/* ── Dropdown animation styles injected once ── */
+const DROPDOWN_CSS = `
+@keyframes dropIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.nav-dropdown { animation: dropIn 0.18s ease forwards; }
+.nav-drop-item { transition: background 0.15s, padding-left 0.15s, color 0.15s; }
+.nav-drop-item:hover { background: rgba(155,16,48,0.12) !important; padding-left: 22px !important; color: #fff !important; }
+`;
 
 function DropdownMenu({ items }: { items: { label: string; href: string }[] }) {
   return (
     <div
-      className="absolute top-full left-0 mt-0 w-56 z-50 shadow-2xl overflow-hidden"
-      style={{ backgroundColor: "#12203a", borderTop: "3px solid #C0185A" }}
+      className="nav-dropdown absolute z-50"
+      style={{
+        top: "calc(100% + 2px)",
+        left: "50%",
+        transform: "translateX(-50%)",
+        minWidth: "220px",
+        backgroundColor: DROP_BG,
+        borderRadius: "8px",
+        boxShadow: "0 20px 60px rgba(0,0,0,0.45), 0 4px 16px rgba(0,0,0,0.3)",
+        border: "1px solid rgba(255,255,255,0.08)",
+        overflow: "hidden",
+        /* Extend hit area upward so mouse moving from button→dropdown doesn't miss */
+        paddingTop: "0px",
+      }}
     >
-      {items.map((item) => (
-        <Link
-          key={item.href}
-          href={item.href}
-          className="block px-5 py-2.5 text-sm font-medium border-b transition-colors"
-          style={{ color: "rgba(255,255,255,0.8)", borderColor: "rgba(255,255,255,0.07)" }}
-          onMouseEnter={(e) => {
-            (e.currentTarget as HTMLElement).style.backgroundColor = "#C0185A";
-            (e.currentTarget as HTMLElement).style.color = "#fff";
-          }}
-          onMouseLeave={(e) => {
-            (e.currentTarget as HTMLElement).style.backgroundColor = "transparent";
-            (e.currentTarget as HTMLElement).style.color = "rgba(255,255,255,0.8)";
-          }}
-        >
-          {item.label}
-        </Link>
-      ))}
+      {/* Arrow pointer */}
+      <div style={{
+        position: "absolute",
+        top: "-6px",
+        left: "50%",
+        transform: "translateX(-50%)",
+        width: 0,
+        height: 0,
+        borderLeft: "6px solid transparent",
+        borderRight: "6px solid transparent",
+        borderBottom: `6px solid ${DROP_BG}`,
+        filter: "drop-shadow(0 -2px 2px rgba(0,0,0,0.2))",
+      }} />
+
+      {/* Accent top bar */}
+      <div style={{ height: "3px", background: `linear-gradient(90deg, ${ACCENT}, #c0185a)` }} />
+
+      {/* Items */}
+      <div style={{ padding: "6px 0" }}>
+        {items.map((item) => (
+          <Link
+            key={item.href}
+            href={item.href}
+            className="nav-drop-item"
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              padding: "10px 18px",
+              fontSize: "12px",
+              fontWeight: 600,
+              letterSpacing: "0.03em",
+              color: "rgba(255,255,255,0.75)",
+              textDecoration: "none",
+              borderBottom: "1px solid rgba(255,255,255,0.05)",
+            }}
+          >
+            <span>{item.label}</span>
+            <ChevronRight size={12} style={{ opacity: 0.4, flexShrink: 0 }} />
+          </Link>
+        ))}
+      </div>
     </div>
   );
 }
 
-/** Logo matching the real Wesley Paul globe mark */
 function NavLogo() {
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: "10px", userSelect: "none" }}>
-      {/* Globe icon mark — matches the logo */}
-      <div
-        style={{
-          position: "relative",
-          width: "38px",
-          height: "38px",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          flexShrink: 0,
-        }}
-      >
-        <Globe size={32} strokeWidth={1.5} style={{ color: "#C0185A" }} />
-      </div>
-      {/* Wordmark */}
-      <div style={{ lineHeight: 1 }}>
-        <div
-          style={{
-            color: "#fff",
-            fontWeight: 800,
-            fontSize: "1rem",
-            letterSpacing: "0.01em",
-            textTransform: "uppercase",
-          }}
-        >
-          Wesley Paul
-        </div>
-        <div
-          style={{
-            color: "rgba(255,255,255,0.45)",
-            fontSize: "0.5rem",
-            fontWeight: 600,
-            letterSpacing: "0.16em",
-            textTransform: "uppercase",
-            marginTop: "2px",
-          }}
-        >
-          International Ministries
-        </div>
-      </div>
-    </div>
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src="/logo-nav.png"
+      alt="Wesley Paul International Ministries"
+      style={{ height: "80px", width: "auto", display: "block", marginTop: "-8px", marginBottom: "-8px" }}
+    />
   );
 }
 
@@ -117,6 +130,16 @@ export default function Navbar() {
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const [mobileExpanded, setMobileExpanded] = useState<string | null>(null);
   const navRef = useRef<HTMLDivElement>(null);
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const openMenu = (label: string) => {
+    if (closeTimer.current) clearTimeout(closeTimer.current);
+    setOpenDropdown(label);
+  };
+
+  const scheduleClose = () => {
+    closeTimer.current = setTimeout(() => setOpenDropdown(null), 120);
+  };
 
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {
@@ -128,16 +151,23 @@ export default function Navbar() {
     return () => document.removeEventListener("mousedown", handleClick);
   }, []);
 
+  // Close mobile menu on route navigation
+  useEffect(() => {
+    setMobileOpen(false);
+  }, []);
+
   return (
     <>
+      <style>{DROPDOWN_CSS}</style>
+
       {/* Main Navbar */}
       <header
         ref={navRef}
         className="sticky top-0 z-50 shadow-lg"
-        style={{ backgroundColor: NAV_BG, borderBottom: `1px solid ${NAV_BORDER}` }}
+        style={{ backgroundColor: NAV_BG, borderBottom: `1px solid ${NAV_BORDER}`, overflow: "visible" }}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between" style={{ height: "70px" }}>
+          <div className="flex items-center justify-between" style={{ height: "72px" }}>
 
             {/* Logo */}
             <Link href="/" className="shrink-0">
@@ -151,8 +181,8 @@ export default function Navbar() {
                   <div
                     key={item.label}
                     className="relative"
-                    onMouseEnter={() => setOpenDropdown(item.label)}
-                    onMouseLeave={() => setOpenDropdown(null)}
+                    onMouseEnter={() => openMenu(item.label)}
+                    onMouseLeave={scheduleClose}
                   >
                     <button
                       style={{
@@ -162,12 +192,14 @@ export default function Navbar() {
                         padding: "8px 14px",
                         fontSize: "11px",
                         fontWeight: 700,
-                        letterSpacing: "0.06em",
-                        color: openDropdown === item.label ? "#C0185A" : "rgba(255,255,255,0.85)",
-                        background: "none",
+                        letterSpacing: "0.07em",
+                        color: openDropdown === item.label ? ACCENT : "rgba(255,255,255,0.85)",
+                        background: openDropdown === item.label ? "rgba(155,16,48,0.1)" : "none",
+                        borderRadius: "4px",
                         border: "none",
                         cursor: "pointer",
                         whiteSpace: "nowrap",
+                        transition: "color 0.15s, background 0.15s",
                       }}
                     >
                       {item.label}
@@ -176,10 +208,29 @@ export default function Navbar() {
                         style={{
                           transform: openDropdown === item.label ? "rotate(180deg)" : "none",
                           transition: "transform 0.2s",
+                          color: openDropdown === item.label ? ACCENT : "rgba(255,255,255,0.5)",
                         }}
                       />
                     </button>
-                    {openDropdown === item.label && <DropdownMenu items={item.dropdown} />}
+                    {/* Active underline indicator */}
+                    {openDropdown === item.label && (
+                      <div style={{
+                        position: "absolute",
+                        bottom: 0,
+                        left: "14px",
+                        right: "14px",
+                        height: "2px",
+                        background: ACCENT,
+                        borderRadius: "1px",
+                      }} />
+                    )}
+                    {openDropdown === item.label && (
+                      <>
+                        {/* Transparent bridge fills the gap so mouse movement doesn't close menu */}
+                        <div style={{ position: "absolute", top: "100%", left: 0, right: 0, height: "10px" }} />
+                        <DropdownMenu items={item.dropdown} />
+                      </>
+                    )}
                   </div>
                 ) : (
                   <Link
@@ -190,13 +241,21 @@ export default function Navbar() {
                       padding: "8px 14px",
                       fontSize: "11px",
                       fontWeight: 700,
-                      letterSpacing: "0.06em",
+                      letterSpacing: "0.07em",
                       color: "rgba(255,255,255,0.85)",
                       textDecoration: "none",
                       whiteSpace: "nowrap",
+                      borderRadius: "4px",
+                      transition: "color 0.15s, background 0.15s",
                     }}
-                    onMouseEnter={(e) => (e.currentTarget.style.color = "#C0185A")}
-                    onMouseLeave={(e) => (e.currentTarget.style.color = "rgba(255,255,255,0.85)")}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.color = ACCENT;
+                      e.currentTarget.style.background = "rgba(155,16,48,0.1)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.color = "rgba(255,255,255,0.85)";
+                      e.currentTarget.style.background = "none";
+                    }}
                   >
                     {item.label}
                   </Link>
@@ -206,15 +265,9 @@ export default function Navbar() {
 
             {/* Right: socials + CTA */}
             <div className="hidden lg:flex items-center" style={{ gap: "8px" }}>
-              {/* Social icons */}
               <div
                 className="flex items-center"
-                style={{
-                  gap: "10px",
-                  marginRight: "8px",
-                  paddingRight: "12px",
-                  borderRight: `1px solid ${NAV_BORDER}`,
-                }}
+                style={{ gap: "12px", marginRight: "8px", paddingRight: "14px", borderRight: `1px solid ${NAV_BORDER}` }}
               >
                 {socialLinks.map(({ icon: Icon, href, label }) => (
                   <a
@@ -223,9 +276,9 @@ export default function Navbar() {
                     target="_blank"
                     rel="noopener noreferrer"
                     aria-label={label}
-                    style={{ color: "rgba(255,255,255,0.45)", transition: "color 0.2s" }}
+                    style={{ color: "rgba(255,255,255,0.4)", transition: "color 0.2s" }}
                     onMouseEnter={(e) => (e.currentTarget.style.color = "#fff")}
-                    onMouseLeave={(e) => (e.currentTarget.style.color = "rgba(255,255,255,0.45)")}
+                    onMouseLeave={(e) => (e.currentTarget.style.color = "rgba(255,255,255,0.4)")}
                   >
                     <Icon size={15} />
                   </a>
@@ -235,21 +288,29 @@ export default function Navbar() {
               <Link
                 href="/book"
                 style={{
-                  padding: "6px 12px",
+                  padding: "7px 14px",
                   fontSize: "11px",
                   fontWeight: 700,
                   letterSpacing: "0.04em",
                   color: "rgba(255,255,255,0.7)",
                   textDecoration: "none",
                   whiteSpace: "nowrap",
+                  borderRadius: "4px",
+                  border: "1px solid rgba(255,255,255,0.15)",
+                  transition: "all 0.2s",
                 }}
-                onMouseEnter={(e) => (e.currentTarget.style.color = "#fff")}
-                onMouseLeave={(e) => (e.currentTarget.style.color = "rgba(255,255,255,0.7)")}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.color = "#fff";
+                  e.currentTarget.style.borderColor = "rgba(255,255,255,0.4)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.color = "rgba(255,255,255,0.7)";
+                  e.currentTarget.style.borderColor = "rgba(255,255,255,0.15)";
+                }}
               >
                 Book Dr. Wesley
               </Link>
 
-              {/* Donate — CFAN red heart button */}
               <Link
                 href="/give"
                 style={{
@@ -257,19 +318,27 @@ export default function Navbar() {
                   alignItems: "center",
                   gap: "6px",
                   padding: "9px 18px",
-                  backgroundColor: "#C0185A",
+                  backgroundColor: ACCENT,
                   color: "#fff",
                   fontWeight: 700,
-                  fontSize: "13px",
+                  fontSize: "12px",
+                  letterSpacing: "0.03em",
                   textDecoration: "none",
-                  borderRadius: "3px",
+                  borderRadius: "4px",
                   whiteSpace: "nowrap",
-                  transition: "background-color 0.2s",
+                  transition: "background-color 0.2s, transform 0.15s",
+                  boxShadow: `0 2px 12px rgba(155,16,48,0.4)`,
                 }}
-                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#960E47")}
-                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#C0185A")}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = ACCENT_DARK;
+                  e.currentTarget.style.transform = "translateY(-1px)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = ACCENT;
+                  e.currentTarget.style.transform = "none";
+                }}
               >
-                <Heart size={14} fill="currentColor" />
+                <Heart size={13} fill="currentColor" />
                 Donate
               </Link>
             </div>
@@ -278,32 +347,48 @@ export default function Navbar() {
             <button
               className="lg:hidden p-2 rounded"
               onClick={() => setMobileOpen(!mobileOpen)}
-              style={{ color: "#fff" }}
+              style={{
+                color: "#fff",
+                background: mobileOpen ? "rgba(255,255,255,0.08)" : "none",
+                border: "1px solid rgba(255,255,255,0.1)",
+                borderRadius: "6px",
+                transition: "background 0.2s",
+              }}
               aria-label="Toggle menu"
             >
-              {mobileOpen ? <X size={24} /> : <Menu size={24} />}
+              {mobileOpen ? <X size={22} /> : <Menu size={22} />}
             </button>
           </div>
         </div>
 
-        {/* Mobile Menu */}
+        {/* ── Mobile Menu ── */}
         {mobileOpen && (
-          <div className="lg:hidden" style={{ backgroundColor: "#12203a", borderTop: `1px solid ${NAV_BORDER}` }}>
-            <div style={{ padding: "12px 16px" }}>
+          <div
+            className="lg:hidden"
+            style={{
+              backgroundColor: DROP_BG,
+              borderTop: `1px solid rgba(255,255,255,0.06)`,
+              boxShadow: "0 20px 40px rgba(0,0,0,0.4)",
+            }}
+          >
+            {/* Accent stripe */}
+            <div style={{ height: "2px", background: `linear-gradient(90deg, ${ACCENT}, transparent)` }} />
+
+            <div style={{ padding: "8px 16px 16px" }}>
               {navItems.map((item) =>
                 item.dropdown ? (
-                  <div key={item.label}>
+                  <div key={item.label} style={{ borderBottom: `1px solid rgba(255,255,255,0.05)` }}>
                     <button
                       style={{
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "space-between",
                         width: "100%",
-                        padding: "10px 12px",
+                        padding: "13px 4px",
                         fontSize: "11px",
                         fontWeight: 700,
-                        letterSpacing: "0.06em",
-                        color: "rgba(255,255,255,0.85)",
+                        letterSpacing: "0.07em",
+                        color: mobileExpanded === item.label ? ACCENT : "rgba(255,255,255,0.85)",
                         background: "none",
                         border: "none",
                         cursor: "pointer",
@@ -311,17 +396,52 @@ export default function Navbar() {
                       onClick={() => setMobileExpanded(mobileExpanded === item.label ? null : item.label)}
                     >
                       {item.label}
-                      <ChevronDown size={14} style={{ transform: mobileExpanded === item.label ? "rotate(180deg)" : "none", transition: "transform 0.2s" }} />
+                      <ChevronDown
+                        size={14}
+                        style={{
+                          transform: mobileExpanded === item.label ? "rotate(180deg)" : "none",
+                          transition: "transform 0.2s",
+                          color: mobileExpanded === item.label ? ACCENT : "rgba(255,255,255,0.4)",
+                        }}
+                      />
                     </button>
+
                     {mobileExpanded === item.label && (
-                      <div style={{ marginLeft: "16px", paddingLeft: "12px", borderLeft: "2px solid #C0185A" }}>
+                      <div
+                        style={{
+                          marginBottom: "8px",
+                          marginLeft: "4px",
+                          paddingLeft: "14px",
+                          borderLeft: `2px solid ${ACCENT}`,
+                        }}
+                      >
                         {item.dropdown.map((sub) => (
                           <Link
                             key={sub.href}
                             href={sub.href}
-                            style={{ display: "block", padding: "8px 0", fontSize: "13px", color: "rgba(255,255,255,0.7)", textDecoration: "none" }}
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "8px",
+                              padding: "9px 8px",
+                              fontSize: "13px",
+                              fontWeight: 500,
+                              color: "rgba(255,255,255,0.65)",
+                              textDecoration: "none",
+                              borderRadius: "4px",
+                              transition: "color 0.15s, background 0.15s",
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.color = "#fff";
+                              e.currentTarget.style.background = "rgba(255,255,255,0.05)";
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.color = "rgba(255,255,255,0.65)";
+                              e.currentTarget.style.background = "none";
+                            }}
                             onClick={() => setMobileOpen(false)}
                           >
+                            <ChevronRight size={11} style={{ color: ACCENT, flexShrink: 0 }} />
                             {sub.label}
                           </Link>
                         ))}
@@ -334,12 +454,13 @@ export default function Navbar() {
                     href={item.href}
                     style={{
                       display: "block",
-                      padding: "10px 12px",
+                      padding: "13px 4px",
                       fontSize: "11px",
                       fontWeight: 700,
-                      letterSpacing: "0.06em",
+                      letterSpacing: "0.07em",
                       color: "rgba(255,255,255,0.85)",
                       textDecoration: "none",
+                      borderBottom: `1px solid rgba(255,255,255,0.05)`,
                     }}
                     onClick={() => setMobileOpen(false)}
                   >
@@ -347,17 +468,45 @@ export default function Navbar() {
                   </Link>
                 )
               )}
-              <div style={{ paddingTop: "12px", display: "flex", flexDirection: "column", gap: "8px" }}>
+
+              {/* Mobile CTAs */}
+              <div style={{ paddingTop: "16px", display: "flex", flexDirection: "column", gap: "10px" }}>
                 <Link
                   href="/book"
-                  style={{ display: "block", textAlign: "center", padding: "10px", border: "2px solid rgba(255,255,255,0.3)", color: "#fff", fontWeight: 600, fontSize: "13px", textDecoration: "none", borderRadius: "3px" }}
+                  style={{
+                    display: "block",
+                    textAlign: "center",
+                    padding: "12px",
+                    border: "1px solid rgba(255,255,255,0.2)",
+                    color: "#fff",
+                    fontWeight: 600,
+                    fontSize: "13px",
+                    textDecoration: "none",
+                    borderRadius: "6px",
+                    transition: "background 0.2s",
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.07)")}
+                  onMouseLeave={(e) => (e.currentTarget.style.background = "none")}
                   onClick={() => setMobileOpen(false)}
                 >
                   Book Dr. Wesley
                 </Link>
                 <Link
                   href="/give"
-                  style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "6px", padding: "10px", backgroundColor: "#C0185A", color: "#fff", fontWeight: 700, fontSize: "13px", textDecoration: "none", borderRadius: "3px" }}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "8px",
+                    padding: "12px",
+                    backgroundColor: ACCENT,
+                    color: "#fff",
+                    fontWeight: 700,
+                    fontSize: "13px",
+                    textDecoration: "none",
+                    borderRadius: "6px",
+                    boxShadow: `0 4px 14px rgba(155,16,48,0.35)`,
+                  }}
                   onClick={() => setMobileOpen(false)}
                 >
                   <Heart size={14} fill="currentColor" />

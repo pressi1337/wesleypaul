@@ -9,8 +9,8 @@ import { YoutubeIcon } from "./SocialIcons";
 const slides = [
   {
     type: "video" as const,
-    src: "https://wesleypaul.org/assets/images/wp_slider1_optimized.mp4",
-    poster: "https://wesleypaul.org/assets/images/wp_slider1.jpg",
+    src: "/images/wp_slider1_optimized.mp4",
+    poster: "/images/wp_slider1.jpg",
     eyebrow: "Now Streaming",
     title: "WATCH THE LATEST\nMINISTRY UPDATE NOW",
     cta: { label: "Watch Now", href: "https://www.youtube.com/@DrWesleyPaul", external: true },
@@ -18,7 +18,7 @@ const slides = [
   },
   {
     type: "image" as const,
-    src: "https://wesleypaul.org/assets/images/image_11.jpeg",
+    src: "/images/image_11.jpeg",
     eyebrow: "Evangelism",
     title: "GOSPEL FESTIVALS\nACROSS THE NATIONS",
     cta: { label: "Learn More", href: "/ministries/gospel-festivals", external: false },
@@ -26,7 +26,7 @@ const slides = [
   },
   {
     type: "image" as const,
-    src: "https://wesleypaul.org/assets/images/image_13.jpeg",
+    src: "/images/image_13.jpeg",
     eyebrow: "Family",
     title: "STRENGTHENING\nMARRIAGES & FAMILIES",
     cta: { label: "Find Out More", href: "/ministries/marriage-family", external: false },
@@ -34,7 +34,7 @@ const slides = [
   },
   {
     type: "image" as const,
-    src: "https://wesleypaul.org/assets/images/image_16.jpeg",
+    src: "/images/image_16.jpeg",
     eyebrow: "Revival",
     title: "RENEWALS &\nREVIVAL GATHERINGS",
     cta: { label: "Explore Ministries", href: "/what-we-do", external: false },

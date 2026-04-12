@@ -43,7 +43,7 @@ export default function WhoWeArePage() {
           textAlign: "center",
           padding: "96px 24px",
           minHeight: 280,
-          background: `linear-gradient(rgba(13,27,46,0.8), rgba(13,27,46,0.85)), url(https://wesleypaul.org/assets/images/bg_3.jpg) center/cover no-repeat`,
+          background: `linear-gradient(rgba(13,27,46,0.8), rgba(13,27,46,0.85)), url(/images/bg_3.jpg) center/cover no-repeat`,
         }}
       >
         <div style={{ color: "#fff" }}>
@@ -188,7 +188,7 @@ export default function WhoWeArePage() {
         style={{
           padding: "80px 24px",
           textAlign: "center",
-          background: `linear-gradient(rgba(13,27,46,0.9), rgba(13,27,46,0.92)), url(https://wesleypaul.org/assets/images/bg_1.jpg) center/cover no-repeat`,
+          background: `linear-gradient(rgba(13,27,46,0.9), rgba(13,27,46,0.92)), url(/images/bg_1.jpg) center/cover no-repeat`,
         }}
       >
         <div style={{ maxWidth: 720, margin: "0 auto" }}>

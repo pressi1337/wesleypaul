@@ -2,13 +2,13 @@
 
 :root {
   /* ── Brand colors extracted from logo ─────── */
-  --primary: #2070B8;        /* "WESLEY PAUL" medium blue */
-  --primary-dark: #164F8A;   /* darker shade */
-  --primary-light: #3A8DD4;  /* lighter shade */
-  --accent: #C0185A;         /* globe grid crimson-rose */
-  --accent-dark: #960E47;    /* darker crimson */
+  --primary: #1B3A76;        /* "WESLEY PAUL" deep navy blue */
+  --primary-dark: #0F2454;   /* darker navy */
+  --primary-light: #2559A8;  /* lighter navy */
+  --accent: #9B1030;         /* globe grid deep crimson */
+  --accent-dark: #720B23;    /* darker crimson */
   --gold: #f5a623;           /* warm gold accent */
-  --gray-text: #4A4E69;      /* "INTERNATIONAL MINISTRIES" gray */
+  --gray-text: #555e6b;      /* "INTERNATIONAL MINISTRIES" gray */
   --white: #ffffff;
   --off-white: #f8f9fa;
   --light-gray: #e9ecef;
@@ -16,9 +16,9 @@
   --dark: #0a1523;           /* dark navbar/footer */
   --text: #2d3748;
   /* Aliases used across inner pages */
-  --navy: #2070B8;
+  --navy: #1B3A76;
   --navy-dark: #0a1523;
-  --red: #C0185A;
+  --red: #9B1030;
 }
 
 @theme inline {

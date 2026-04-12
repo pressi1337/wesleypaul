@@ -9,12 +9,12 @@ export const metadata: Metadata = {
 };
 
 const sermons = [
-  { image: "https://wesleypaul.org/assets/images/sermon-1.jpg", title: "God Wants To Do A New Thing In Your Life", date: "January 13, 2024", href: "https://www.youtube.com/@DrWesleyPaul" },
-  { image: "https://wesleypaul.org/assets/images/sermon-2.jpg", title: "The Power of the Gospel to Save Every Soul", date: "February 4, 2024", href: "https://www.youtube.com/@DrWesleyPaul" },
-  { image: "https://wesleypaul.org/assets/images/sermon-3.jpg", title: "Reviving the Church for the Great Commission", date: "March 18, 2024", href: "https://www.youtube.com/@DrWesleyPaul" },
-  { image: "https://wesleypaul.org/assets/images/event-1.jpg", title: "Faith That Moves Mountains", date: "April 7, 2024", href: "https://www.youtube.com/@DrWesleyPaul" },
-  { image: "https://wesleypaul.org/assets/images/event-2.jpg", title: "The Great Commission: Our Calling", date: "April 21, 2024", href: "https://www.youtube.com/@DrWesleyPaul" },
-  { image: "https://wesleypaul.org/assets/images/event-3.jpg", title: "Building a Marriage That Lasts", date: "May 5, 2024", href: "https://www.youtube.com/@DrWesleyPaul" },
+  { image: "/images/sermon-1.jpg", title: "God Wants To Do A New Thing In Your Life", date: "January 13, 2024", href: "https://www.youtube.com/@DrWesleyPaul" },
+  { image: "/images/sermon-2.jpg", title: "The Power of the Gospel to Save Every Soul", date: "February 4, 2024", href: "https://www.youtube.com/@DrWesleyPaul" },
+  { image: "/images/sermon-3.jpg", title: "Reviving the Church for the Great Commission", date: "March 18, 2024", href: "https://www.youtube.com/@DrWesleyPaul" },
+  { image: "/images/event-1.jpg", title: "Faith That Moves Mountains", date: "April 7, 2024", href: "https://www.youtube.com/@DrWesleyPaul" },
+  { image: "/images/event-2.jpg", title: "The Great Commission: Our Calling", date: "April 21, 2024", href: "https://www.youtube.com/@DrWesleyPaul" },
+  { image: "/images/event-3.jpg", title: "Building a Marriage That Lasts", date: "May 5, 2024", href: "https://www.youtube.com/@DrWesleyPaul" },
 ];
 
 export default function SermonsPage() {
@@ -28,7 +28,7 @@ export default function SermonsPage() {
           textAlign: "center",
           padding: "96px 24px",
           minHeight: 280,
-          background: `linear-gradient(rgba(13,27,46,0.8), rgba(13,27,46,0.85)), url(https://wesleypaul.org/assets/images/bg_1.jpg) center/cover no-repeat`,
+          background: `linear-gradient(rgba(13,27,46,0.8), rgba(13,27,46,0.85)), url(/images/bg_1.jpg) center/cover no-repeat`,
         }}
       >
         <div style={{ color: "#fff" }}>

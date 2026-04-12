@@ -34,7 +34,7 @@ export default function MeetWesleyPage() {
           textAlign: "center",
           padding: "96px 24px",
           minHeight: 280,
-          background: `linear-gradient(rgba(13,27,46,0.8), rgba(13,27,46,0.85)), url(https://wesleypaul.org/assets/images/bg_3.jpg) center/cover no-repeat`,
+          background: `linear-gradient(rgba(13,27,46,0.8), rgba(13,27,46,0.85)), url(/images/bg_3.jpg) center/cover no-repeat`,
         }}
       >
         <div style={{ color: "#fff" }}>
@@ -58,7 +58,7 @@ export default function MeetWesleyPage() {
               <div style={{ borderRadius: 8, overflow: "hidden", marginBottom: 24, boxShadow: "0 4px 20px rgba(0,0,0,0.12)" }}>
                 <div style={{ position: "relative", height: 288, width: "100%" }}>
                   <SafeImage
-                    src="https://wesleypaul.org/assets/images/image_16.jpeg"
+                    src="/images/image_16.jpeg"
                     alt=""
                     fill
                     style={{ objectFit: "cover", objectPosition: "top" }}
@@ -158,7 +158,7 @@ export default function MeetWesleyPage() {
         style={{
           padding: "80px 24px",
           textAlign: "center",
-          background: `linear-gradient(rgba(13,27,46,0.9), rgba(13,27,46,0.92)), url(https://wesleypaul.org/assets/images/bg_1.jpg) center/cover no-repeat`,
+          background: `linear-gradient(rgba(13,27,46,0.9), rgba(13,27,46,0.92)), url(/images/bg_1.jpg) center/cover no-repeat`,
         }}
       >
         <div style={{ maxWidth: 720, margin: "0 auto" }}>

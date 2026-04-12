@@ -28,7 +28,7 @@ export default function GivePage() {
           textAlign: "center",
           padding: "96px 24px",
           minHeight: 280,
-          background: `linear-gradient(rgba(13,27,46,0.8), rgba(13,27,46,0.85)), url(https://wesleypaul.org/assets/images/bg_1.jpg) center/cover no-repeat`,
+          background: `linear-gradient(rgba(13,27,46,0.8), rgba(13,27,46,0.85)), url(/images/bg_1.jpg) center/cover no-repeat`,
         }}
       >
         <div style={{ color: "#fff" }}>
@@ -48,7 +48,7 @@ export default function GivePage() {
             {/* Image */}
             <div style={{ position: "relative", borderRadius: 8, overflow: "hidden", height: 540, boxShadow: "0 8px 30px rgba(0,0,0,0.15)" }}>
               <SafeImage
-                src="https://wesleypaul.org/assets/images/donate_wesley.jpg"
+                src="/images/donate_wesley.jpg"
                 alt=""
                 fill
                 style={{ objectFit: "cover" }}

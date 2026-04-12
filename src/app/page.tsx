@@ -14,7 +14,7 @@ export const metadata: Metadata = {
 
 const ministries = [
   {
-    image: "https://wesleypaul.org/assets/images/event-1.jpg",
+    image: "/images/event-1.jpg",
     category: "Evangelism",
     title: "Gospel Festivals",
     excerpt:
@@ -22,7 +22,7 @@ const ministries = [
     href: "/ministries/gospel-festivals",
   },
   {
-    image: "https://wesleypaul.org/assets/images/event-2.jpg",
+    image: "/images/event-2.jpg",
     category: "Revival",
     title: "Renewals & Revivals",
     excerpt:
@@ -30,7 +30,7 @@ const ministries = [
     href: "/ministries/renewals-revivals",
   },
   {
-    image: "https://wesleypaul.org/assets/images/event-3.jpg",
+    image: "/images/event-3.jpg",
     category: "Family",
     title: "Marriage & Family Seminars",
     excerpt:
@@ -38,7 +38,7 @@ const ministries = [
     href: "/ministries/marriage-family",
   },
   {
-    image: "https://wesleypaul.org/assets/images/sermon-1.jpg",
+    image: "/images/sermon-1.jpg",
     category: "Training",
     title: "Evangelism Seminars",
     excerpt:
@@ -46,7 +46,7 @@ const ministries = [
     href: "/ministries/evangelism",
   },
   {
-    image: "https://wesleypaul.org/assets/images/sermon-2.jpg",
+    image: "/images/sermon-2.jpg",
     category: "Youth",
     title: "Youth Outreach",
     excerpt:
@@ -54,7 +54,7 @@ const ministries = [
     href: "/ministries/youth-outreach",
   },
   {
-    image: "https://wesleypaul.org/assets/images/sermon-3.jpg",
+    image: "/images/sermon-3.jpg",
     category: "Training",
     title: "Evangelism Training",
     excerpt:
@@ -65,10 +65,10 @@ const ministries = [
 
 
 const gallery = [
-  "https://wesleypaul.org/assets/images/image_11.jpeg",
-  "https://wesleypaul.org/assets/images/image_13.jpeg",
-  "https://wesleypaul.org/assets/images/image_16.jpeg",
-  "https://wesleypaul.org/assets/images/image_17.jpeg",
+  "/images/image_11.jpeg",
+  "/images/image_13.jpeg",
+  "/images/image_16.jpeg",
+  "/images/image_17.jpeg",
 ];
 
 export default function HomePage() {
@@ -139,7 +139,7 @@ export default function HomePage() {
             {/* Image column */}
             <div style={{ position: "relative", minHeight: "420px", backgroundColor: "#1a2a3a" }}>
               <SafeImage
-                src="https://wesleypaul.org/assets/images/image_16.jpeg"
+                src="/images/image_16.jpeg"
                 alt=""
                 fill
                 style={{ objectFit: "cover" }}
@@ -294,9 +294,9 @@ export default function HomePage() {
             }}
           >
             {[
-              { image: "https://wesleypaul.org/assets/images/sermon-1.jpg", title: "God Wants To Do A New Thing In Your Life", date: "Jan 13, 2024", href: "https://www.youtube.com/@DrWesleyPaul" },
-              { image: "https://wesleypaul.org/assets/images/sermon-2.jpg", title: "The Power of the Gospel to Save Every Soul", date: "Feb 4, 2024", href: "https://www.youtube.com/@DrWesleyPaul" },
-              { image: "https://wesleypaul.org/assets/images/sermon-3.jpg", title: "Reviving the Church for the Great Commission", date: "Mar 18, 2024", href: "https://www.youtube.com/@DrWesleyPaul" },
+              { image: "/images/sermon-1.jpg", title: "God Wants To Do A New Thing In Your Life", date: "Jan 13, 2024", href: "https://www.youtube.com/@DrWesleyPaul" },
+              { image: "/images/sermon-2.jpg", title: "The Power of the Gospel to Save Every Soul", date: "Feb 4, 2024", href: "https://www.youtube.com/@DrWesleyPaul" },
+              { image: "/images/sermon-3.jpg", title: "Reviving the Church for the Great Commission", date: "Mar 18, 2024", href: "https://www.youtube.com/@DrWesleyPaul" },
             ].map((s) => (
               <a key={s.title} href={s.href} target="_blank" rel="noopener noreferrer" className="card-hover" style={{ display: "block", textDecoration: "none" }}>
                 <div style={{ position: "relative", height: "192px", overflow: "hidden", backgroundColor: "#1a2a3a" }}>
