@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import {
   Save, Check, Plus, Trash2, Globe, BarChart2, Layout,
-  Languages, Zap, CheckCircle, AlertCircle, ImageIcon,
+  Languages, Zap, CheckCircle, AlertCircle, ImageIcon, KeyRound, Eye, EyeOff,
 } from "lucide-react";
 
 // ── Styles ────────────────────────────────────────────────────────────────────
@@ -482,12 +482,110 @@ export default function FeaturesPage() {
         </div>
       </div>
 
+      {/* ── Change Password ─────────────────────────────────────────────── */}
+      <ChangePasswordCard />
+
       {/* Bottom save */}
       <div style={{ display: "flex", justifyContent: "flex-end", paddingBottom: 40 }}>
         <button onClick={() => void saveAll()} disabled={saving}
           style={{ display: "flex", alignItems: "center", gap: 7, padding: "10px 28px", background: "#2070B8", color: "#fff", border: "none", borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: "pointer", boxShadow: "0 2px 8px rgba(32,112,184,0.3)" }}>
           {saving ? <><Save size={14} /> Saving…</> : <><Check size={14} /> Save All Changes</>}
         </button>
+      </div>
+    </div>
+  );
+}
+
+/* ── Change Password card ──────────────────────────────────────────────────── */
+function ChangePasswordCard() {
+  const [current, setCurrent]   = useState("");
+  const [next, setNext]         = useState("");
+  const [confirm, setConfirm]   = useState("");
+  const [showCur, setShowCur]   = useState(false);
+  const [showNew, setShowNew]   = useState(false);
+  const [busy, setBusy]         = useState(false);
+  const [msg, setMsg]           = useState<{ ok: boolean; text: string } | null>(null);
+
+  const submit = async () => {
+    setMsg(null);
+    if (!current || !next || !confirm) { setMsg({ ok: false, text: "All fields are required." }); return; }
+    if (next !== confirm)              { setMsg({ ok: false, text: "New passwords do not match." }); return; }
+    if (next.length < 8)               { setMsg({ ok: false, text: "Password must be at least 8 characters." }); return; }
+    setBusy(true);
+    try {
+      const r = await fetch("/api/admin/change-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ current_password: current, new_password: next }),
+      });
+      const d = await r.json() as { success?: boolean; error?: string };
+      if (d.success) {
+        setMsg({ ok: true, text: "Password changed successfully." });
+        setCurrent(""); setNext(""); setConfirm("");
+      } else {
+        setMsg({ ok: false, text: d.error ?? "Failed to change password." });
+      }
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const pwInp: React.CSSProperties = {
+    width: "100%", padding: "8px 38px 8px 11px", border: "1px solid #e2e8f0",
+    borderRadius: 7, fontSize: 13, fontFamily: "inherit", outline: "none",
+    background: "#fff", boxSizing: "border-box",
+  };
+
+  const PwField = ({ label, value, show, onToggle, onChange }: {
+    label: string; value: string; show: boolean;
+    onToggle: () => void; onChange: (v: string) => void;
+  }) => (
+    <div>
+      <label style={{ display: "block", fontSize: 11.5, fontWeight: 600, color: "#374151", marginBottom: 4 }}>{label}</label>
+      <div style={{ position: "relative" }}>
+        <input
+          type={show ? "text" : "password"}
+          value={value}
+          onChange={e => onChange(e.target.value)}
+          style={pwInp}
+          autoComplete="new-password"
+        />
+        <button type="button" onClick={onToggle}
+          style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "#94a3b8", display: "flex", alignItems: "center" }}>
+          {show ? <EyeOff size={14} /> : <Eye size={14} />}
+        </button>
+      </div>
+    </div>
+  );
+
+  return (
+    <div style={card}>
+      <div style={cardHead}>
+        <KeyRound size={16} style={{ color: "#7c3aed" }} />
+        <span style={{ fontWeight: 700, fontSize: 14, color: "#0f172a" }}>Change Password</span>
+      </div>
+      <div style={{ padding: "18px 20px", display: "flex", flexDirection: "column", gap: 14, maxWidth: 480 }}>
+        <PwField label="Current Password" value={current} show={showCur} onToggle={() => setShowCur(v => !v)} onChange={setCurrent} />
+        <PwField label="New Password"     value={next}    show={showNew} onToggle={() => setShowNew(v => !v)} onChange={setNext} />
+        <PwField label="Confirm New Password" value={confirm} show={showNew} onToggle={() => setShowNew(v => !v)} onChange={setConfirm} />
+
+        {msg && (
+          <div style={{ display: "flex", alignItems: "center", gap: 7, padding: "9px 13px", borderRadius: 7, fontSize: 13,
+            background: msg.ok ? "#f0fdf4" : "#fef2f2", color: msg.ok ? "#16a34a" : "#dc2626",
+            border: `1px solid ${msg.ok ? "#bbf7d0" : "#fecaca"}` }}>
+            {msg.ok ? <CheckCircle size={14} /> : <AlertCircle size={14} />}
+            {msg.text}
+          </div>
+        )}
+
+        <div>
+          <button onClick={() => void submit()} disabled={busy}
+            style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "9px 22px", background: busy ? "#e2e8f0" : "#7c3aed",
+              color: busy ? "#94a3b8" : "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700,
+              cursor: busy ? "default" : "pointer", boxShadow: busy ? "none" : "0 2px 8px rgba(124,58,237,0.3)" }}>
+            <KeyRound size={13} /> {busy ? "Saving…" : "Update Password"}
+          </button>
+        </div>
       </div>
     </div>
   );
