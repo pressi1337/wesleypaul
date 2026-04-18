@@ -2,27 +2,39 @@
 
 import Link from "next/link";
 import { useState, useEffect, useRef } from "react";
+import { useSearchParams } from "next/navigation";
 import { Menu, X, ChevronDown, Heart, ChevronRight } from "lucide-react";
 import { FacebookIcon, YoutubeIcon, InstagramIcon } from "./SocialIcons";
+import LangSwitcher, { REGIONS } from "./LangSwitcher";
 
-const aboutLinks = [
-  { label: "Dr. Wesley Paul's Bio", href: "/meet-wesley" },
-  { label: "Who We Are", href: "/who-we-are" },
-  { label: "What We Do", href: "/what-we-do" },
-];
+export interface NavItemData {
+  id?: number;
+  label: string;
+  href: string;
+  open_new_tab?: number;
+  children?: { id?: number; label: string; href: string; open_new_tab?: number }[];
+}
 
-const ministriesLinks = [
-  { label: "Gospel Festivals", href: "/ministries/gospel-festivals" },
-  { label: "Renewals & Revivals", href: "/ministries/renewals-revivals" },
-  { label: "Evangelism Seminars", href: "/ministries/evangelism" },
-  { label: "Marriage & Family Seminars", href: "/ministries/marriage-family" },
-  { label: "Youth Outreach", href: "/ministries/youth-outreach" },
-];
-
-const navItems = [
+const DEFAULT_NAV_ITEMS: NavItemData[] = [
   { label: "HOME", href: "/" },
-  { label: "ABOUT", href: "/who-we-are", dropdown: aboutLinks },
-  { label: "MINISTRIES", href: "/what-we-do", dropdown: ministriesLinks },
+  {
+    label: "ABOUT", href: "/who-we-are",
+    children: [
+      { label: "Dr. Wesley Paul's Bio", href: "/meet-wesley" },
+      { label: "Who We Are", href: "/who-we-are" },
+      { label: "What We Do", href: "/what-we-do" },
+    ],
+  },
+  {
+    label: "MINISTRIES", href: "/what-we-do",
+    children: [
+      { label: "Gospel Festivals", href: "/ministries/gospel-festivals" },
+      { label: "Renewals & Revivals", href: "/ministries/renewals-revivals" },
+      { label: "Evangelism Seminars", href: "/ministries/evangelism" },
+      { label: "Marriage & Family Seminars", href: "/ministries/marriage-family" },
+      { label: "Youth Outreach", href: "/ministries/youth-outreach" },
+    ],
+  },
   { label: "SERMONS", href: "/sermons" },
   { label: "CONTACT", href: "/contact" },
 ];
@@ -114,23 +126,54 @@ function DropdownMenu({ items }: { items: { label: string; href: string }[] }) {
   );
 }
 
-function NavLogo() {
+function NavLogo({ src }: { src: string }) {
   return (
     // eslint-disable-next-line @next/next/no-img-element
     <img
-      src="/logo-nav.png"
+      src={src}
       alt="Wesley Paul International Ministries"
       style={{ height: "80px", width: "auto", display: "block", marginTop: "-8px", marginBottom: "-8px" }}
+      onError={(e) => { (e.currentTarget as HTMLImageElement).src = "/logo-nav.png"; }}
     />
   );
 }
 
-export default function Navbar() {
+export default function Navbar({ items, logo }: { items?: NavItemData[]; logo?: string }) {
+  const baseItems = items && items.length > 0 ? items : DEFAULT_NAV_ITEMS;
+  const [displayItems, setDisplayItems] = useState<NavItemData[]>(baseItems);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const [mobileExpanded, setMobileExpanded] = useState<string | null>(null);
   const navRef = useRef<HTMLDivElement>(null);
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const searchParams = useSearchParams();
+  const [lang, setLang] = useState("en");
+  useEffect(() => {
+    setLang(searchParams.get("lang") ?? "en");
+  }, [searchParams]);
+
+  // Apply nav translations when language changes
+  useEffect(() => {
+    setDisplayItems(baseItems);
+    if (lang === "en") return;
+    fetch(`/api/nav-translations?lang=${lang}`)
+      .then(r => r.json())
+      .then((d: { items?: Array<{ id: number; label: string; href: string; parent_id: number | null }> }) => {
+        if (!d.items) return;
+        const trMap: Record<number, string> = {};
+        d.items.forEach(i => { trMap[i.id] = i.label; });
+        setDisplayItems(baseItems.map(item => ({
+          ...item,
+          label: (item.id && trMap[item.id]) ? trMap[item.id] : item.label,
+          children: item.children?.map(child => ({
+            ...child,
+            label: (child.id && trMap[child.id]) ? trMap[child.id] : child.label,
+          })),
+        })));
+      })
+      .catch(() => {});
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lang]);
 
   const openMenu = (label: string) => {
     if (closeTimer.current) clearTimeout(closeTimer.current);
@@ -171,13 +214,13 @@ export default function Navbar() {
 
             {/* Logo */}
             <Link href="/" className="shrink-0">
-              <NavLogo />
+              <NavLogo src={logo || "/logo-nav.png"} />
             </Link>
 
             {/* Desktop Nav */}
             <nav className="hidden lg:flex items-center" style={{ gap: "2px" }}>
-              {navItems.map((item) =>
-                item.dropdown ? (
+              {displayItems.map((item) =>
+                item.children && item.children.length > 0 ? (
                   <div
                     key={item.label}
                     className="relative"
@@ -228,7 +271,7 @@ export default function Navbar() {
                       <>
                         {/* Transparent bridge fills the gap so mouse movement doesn't close menu */}
                         <div style={{ position: "absolute", top: "100%", left: 0, right: 0, height: "10px" }} />
-                        <DropdownMenu items={item.dropdown} />
+                        <DropdownMenu items={item.children!} />
                       </>
                     )}
                   </div>
@@ -284,6 +327,9 @@ export default function Navbar() {
                   </a>
                 ))}
               </div>
+
+              {/* Language switcher */}
+              <LangSwitcher dark={true} />
 
               <Link
                 href="/book"
@@ -343,21 +389,48 @@ export default function Navbar() {
               </Link>
             </div>
 
-            {/* Mobile toggle */}
-            <button
-              className="lg:hidden p-2 rounded"
-              onClick={() => setMobileOpen(!mobileOpen)}
-              style={{
-                color: "#fff",
-                background: mobileOpen ? "rgba(255,255,255,0.08)" : "none",
-                border: "1px solid rgba(255,255,255,0.1)",
-                borderRadius: "6px",
-                transition: "background 0.2s",
-              }}
-              aria-label="Toggle menu"
-            >
-              {mobileOpen ? <X size={22} /> : <Menu size={22} />}
-            </button>
+            {/* Mobile: Donate + hamburger */}
+            <div className="flex lg:hidden items-center" style={{ gap: "8px" }}>
+              <Link
+                href="/give"
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  padding: "10px 22px",
+                  backgroundColor: ACCENT,
+                  color: "#fff",
+                  fontWeight: 700,
+                  fontSize: "15px",
+                  textDecoration: "none",
+                  borderRadius: "4px",
+                  whiteSpace: "nowrap",
+                  boxShadow: `0 2px 10px rgba(155,16,48,0.4)`,
+                }}
+              >
+                <Heart size={15} fill="currentColor" />
+                Donate
+              </Link>
+
+              <button
+                onClick={() => setMobileOpen(!mobileOpen)}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  padding: "10px 12px",
+                  color: "#fff",
+                  background: mobileOpen ? "rgba(255,255,255,0.08)" : "none",
+                  border: "1px solid rgba(255,255,255,0.1)",
+                  borderRadius: "6px",
+                  cursor: "pointer",
+                  transition: "background 0.2s",
+                }}
+                aria-label="Toggle menu"
+              >
+                {mobileOpen ? <X size={26} /> : <Menu size={26} />}
+              </button>
+            </div>
           </div>
         </div>
 
@@ -375,8 +448,8 @@ export default function Navbar() {
             <div style={{ height: "2px", background: `linear-gradient(90deg, ${ACCENT}, transparent)` }} />
 
             <div style={{ padding: "8px 16px 16px" }}>
-              {navItems.map((item) =>
-                item.dropdown ? (
+              {displayItems.map((item) =>
+                item.children && item.children.length > 0 ? (
                   <div key={item.label} style={{ borderBottom: `1px solid rgba(255,255,255,0.05)` }}>
                     <button
                       style={{
@@ -415,7 +488,7 @@ export default function Navbar() {
                           borderLeft: `2px solid ${ACCENT}`,
                         }}
                       >
-                        {item.dropdown.map((sub) => (
+                        {item.children!.map((sub) => (
                           <Link
                             key={sub.href}
                             href={sub.href}
@@ -468,6 +541,29 @@ export default function Navbar() {
                   </Link>
                 )
               )}
+
+              {/* Mobile Language Switcher — grouped by region like CFAN */}
+              <div style={{ paddingTop: "12px", borderTop: "1px solid rgba(255,255,255,0.06)", marginTop: 4 }}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,0.3)", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 10 }}>Select Language</div>
+                {REGIONS.map(region => (
+                  <div key={region.code} style={{ marginBottom: 8 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 5 }}>
+                      <span style={{ fontSize: 16 }}>{region.flag}</span>
+                      <span style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.45)", textTransform: "uppercase", letterSpacing: "0.06em" }}>{region.country}</span>
+                    </div>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 6, paddingLeft: 24 }}>
+                      {region.languages.map(l => (
+                        <Link key={l.code}
+                          href={l.code === "en" ? (typeof window !== "undefined" ? window.location.pathname : "/") : `${typeof window !== "undefined" ? window.location.pathname : "/"}?lang=${l.code}`}
+                          onClick={() => setMobileOpen(false)}
+                          style={{ display: "flex", alignItems: "center", gap: 4, padding: "5px 11px", borderRadius: 5, background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.85)", fontSize: 12, fontWeight: 600, textDecoration: "none" }}>
+                          {l.nativeLabel}
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
 
               {/* Mobile CTAs */}
               <div style={{ paddingTop: "16px", display: "flex", flexDirection: "column", gap: "10px" }}>

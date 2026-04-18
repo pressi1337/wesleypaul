@@ -1,53 +1,184 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useSearchParams } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight, Play } from "lucide-react";
 import { YoutubeIcon } from "./SocialIcons";
+import { translateBatch } from "@/lib/translate-client";
 
-const slides = [
+export interface HeroSlideTranslation {
+  eyebrow?: string;
+  title?: string;
+  cta_label?: string;
+}
+
+export interface HeroSlide {
+  type: string;
+  src: string;
+  poster?: string;
+  eyebrow: string;
+  title: string;
+  cta_label: string;
+  cta_href: string;
+  cta_external: boolean;
+  show_platforms: boolean;
+  /** 0–90 — overlay darkness percentage (default 60) */
+  overlay_opacity?: number;
+  /** 100–200 — zoom percentage, 100 = normal cover (default 100) */
+  img_zoom?: number;
+  /** CSS object-position / background-position value (default "center") */
+  img_position?: string;
+  /** Per-language text overrides keyed by lang code, e.g. { hi: { title: "…" } } */
+  translations?: Record<string, HeroSlideTranslation>;
+}
+
+/** Resolve display text for a slide in the current language */
+function slideText(s: HeroSlide, lang: string) {
+  const t = lang !== "en" ? s.translations?.[lang] : undefined;
+  // Replace literal \n (stored from textarea) with real newlines
+  const fixNl = (str: string) => str.replace(/\\n/g, "\n");
+  return {
+    eyebrow:   t?.eyebrow   || s.eyebrow,
+    title:     fixNl(t?.title    || s.title),
+    cta_label: t?.cta_label || s.cta_label,
+  };
+}
+
+const DEFAULT_SLIDES: HeroSlide[] = [
   {
-    type: "video" as const,
+    type: "video",
     src: "/images/wp_slider1_optimized.mp4",
     poster: "/images/wp_slider1.jpg",
     eyebrow: "Now Streaming",
-    title: "WATCH THE LATEST\nMINISTRY UPDATE NOW",
-    cta: { label: "Watch Now", href: "https://www.youtube.com/@DrWesleyPaul", external: true },
-    showPlatforms: true,
+    title: "WATCH THE LATEST\nMINISTRY UPDATE NOW", // actual newline — JS source is fine
+    cta_label: "Watch Now",
+    cta_href: "https://www.youtube.com/@DrWesleyPaul",
+    cta_external: true,
+    show_platforms: true,
   },
   {
-    type: "image" as const,
+    type: "image",
     src: "/images/image_11.jpeg",
     eyebrow: "Evangelism",
     title: "GOSPEL FESTIVALS\nACROSS THE NATIONS",
-    cta: { label: "Learn More", href: "/ministries/gospel-festivals", external: false },
-    showPlatforms: false,
+    cta_label: "Learn More",
+    cta_href: "/ministries/gospel-festivals",
+    cta_external: false,
+    show_platforms: false,
   },
   {
-    type: "image" as const,
+    type: "image",
     src: "/images/image_13.jpeg",
     eyebrow: "Family",
     title: "STRENGTHENING\nMARRIAGES & FAMILIES",
-    cta: { label: "Find Out More", href: "/ministries/marriage-family", external: false },
-    showPlatforms: false,
+    cta_label: "Find Out More",
+    cta_href: "/ministries/marriage-family",
+    cta_external: false,
+    show_platforms: false,
   },
   {
-    type: "image" as const,
+    type: "image",
     src: "/images/image_16.jpeg",
     eyebrow: "Revival",
     title: "RENEWALS &\nREVIVAL GATHERINGS",
-    cta: { label: "Explore Ministries", href: "/what-we-do", external: false },
-    showPlatforms: false,
+    cta_label: "Explore Ministries",
+    cta_href: "/what-we-do",
+    cta_external: false,
+    show_platforms: false,
   },
 ];
 
 const HERO_HEIGHT = "calc(100vh - 70px)";
 const HERO_MIN_HEIGHT = "580px";
 
-export default function HeroCarousel() {
+export default function HeroCarousel({
+  slides: slidesProp,
+  paused,
+  forcedSlide,
+}: {
+  slides?: HeroSlide[];
+  /** When true the auto-advance timer is suspended (used by live preview while editing) */
+  paused?: boolean;
+  /** Jump to this slide index (used by live preview to show the slide being edited) */
+  forcedSlide?: number;
+}) {
+  const baseSlides = slidesProp && slidesProp.length > 0 ? slidesProp : DEFAULT_SLIDES;
+  const [slides, setSlides] = useState<HeroSlide[]>(baseSlides);
   const [current, setCurrent] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
+  // lang starts as "en" on the server so SSR output matches client's initial render.
+  // The effect below updates it to the real ?lang= value after hydration.
+  const [lang, setLang] = useState("en");
+  const searchParams = useSearchParams();
+  useEffect(() => {
+    setLang(searchParams.get("lang") ?? "en");
+  }, [searchParams]);
+
+  // Sync prop changes into internal state — required for live preview in Site Editor
+  // (useState only uses the initial value once; subsequent prop changes are ignored otherwise)
+  useEffect(() => {
+    if (slidesProp && slidesProp.length > 0 && lang === "en") {
+      setSlides(slidesProp);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [slidesProp]);
+
+  // Auto-translate hero slides when language changes
+  useEffect(() => {
+    if (lang === "en") { setSlides(baseSlides); return; }
+
+    // Check if all slides already have stored translations for this lang
+    const allHaveStored = baseSlides.every(s => s.translations?.[lang]);
+    if (allHaveStored) { setSlides(baseSlides); return; }
+
+    const cacheKey = `hero_tr_v4_${lang}`;
+    try {
+      const cached = sessionStorage.getItem(cacheKey);
+      if (cached) { setSlides(JSON.parse(cached) as HeroSlide[]); return; }
+    } catch { /* ignore */ }
+
+    // Flatten: [eyebrow0, title0, cta0, eyebrow1, title1, cta1, ...]
+    const texts = baseSlides.flatMap(s => {
+      const stored = s.translations?.[lang];
+      return [
+        stored?.eyebrow ?? s.eyebrow,
+        stored?.title ?? s.title.replace(/\n/g, " "),
+        stored?.cta_label ?? s.cta_label,
+      ];
+    });
+
+    if (window.self !== window.top) return; // preview: only show saved translations
+    translateBatch(texts, lang)
+      .then(results => {
+        let idx = 0;
+        const trSlides: HeroSlide[] = baseSlides.map(s => {
+          const stored = s.translations?.[lang];
+          const eyebrow = stored?.eyebrow ?? results[idx++];
+          const titleFlat = stored?.title ?? results[idx++];
+          const cta_label = stored?.cta_label ?? results[idx++];
+          return {
+            ...s,
+            translations: {
+              ...s.translations,
+              [lang]: { eyebrow, title: titleFlat, cta_label },
+            },
+          };
+        });
+        setSlides(trSlides);
+        try { sessionStorage.setItem(cacheKey, JSON.stringify(trSlides)); } catch { /* ignore */ }
+      })
+      .catch(() => { /* stay English on failure — don't cache */ });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lang]);
+
+  // Jump to a specific slide when the editor focuses it
+  useEffect(() => {
+    if (typeof forcedSlide === "number" && forcedSlide >= 0 && forcedSlide < slides.length) {
+      setCurrent(forcedSlide);
+    }
+  }, [forcedSlide, slides.length]);
 
   const go = useCallback(
     (dir: 1 | -1) => {
@@ -56,15 +187,21 @@ export default function HeroCarousel() {
       setCurrent((c) => (c + dir + slides.length) % slides.length);
       setTimeout(() => setIsAnimating(false), 600);
     },
-    [isAnimating]
+    [isAnimating, slides.length]
   );
 
+  // Auto-advance — suspended when editor is hovering a slide
   useEffect(() => {
+    if (paused) return;
     const t = setInterval(() => go(1), 6000);
     return () => clearInterval(t);
-  }, [go]);
+  }, [go, paused]);
 
   const slide = slides[current];
+  const { eyebrow, title, cta_label } = slideText(slide, lang);
+  const overlayOpacity = (slide.overlay_opacity ?? 60) / 100;
+  const overlayLeft = Math.min(overlayOpacity + 0.15, 0.95);
+  const overlayRight = Math.max(overlayOpacity - 0.15, 0);
 
   return (
     <section
@@ -78,12 +215,17 @@ export default function HeroCarousel() {
       }}
     >
       {/* ── Slide backgrounds ── */}
-      {slides.map((s, i) =>
-        s.type === "video" ? (
+      {slides.map((s, i) => {
+        if (!s.src) return null;
+        const zoom = s.img_zoom ?? 100;
+        const pos  = s.img_position || "center";
+        // Normalise: only treat as video when type is explicitly "video"
+        const isVideo = String(s.type ?? "").trim() === "video";
+        return isVideo ? (
           <video
             key={i}
             src={s.src}
-            poster={s.poster}
+            poster={s.poster || undefined}
             autoPlay
             muted
             loop
@@ -94,6 +236,9 @@ export default function HeroCarousel() {
               width: "100%",
               height: "100%",
               objectFit: "cover",
+              objectPosition: pos,
+              transform: zoom > 100 ? `scale(${zoom / 100})` : undefined,
+              transformOrigin: pos,
               opacity: i === current ? 1 : 0,
               transition: "opacity 0.7s ease",
               zIndex: 0,
@@ -109,26 +254,34 @@ export default function HeroCarousel() {
               opacity: i === current ? 1 : 0,
               transition: "opacity 0.7s ease",
               zIndex: 0,
+              overflow: "hidden",
             }}
           >
             <Image
               src={s.src}
               alt=""
               fill
-              style={{ objectFit: "cover", color: "transparent" }}
+              style={{
+                objectFit: "cover",
+                objectPosition: pos,
+                transform: zoom > 100 ? `scale(${zoom / 100})` : undefined,
+                transformOrigin: pos,
+                color: "transparent",
+              }}
               unoptimized
             />
           </div>
-        )
-      )}
+        );
+      })}
 
-      {/* ── Dark overlay ── */}
+      {/* ── Per-slide dark overlay ── */}
       <div
         style={{
           position: "absolute",
           inset: 0,
-          background: "linear-gradient(to right, rgba(0,0,0,0.75) 40%, rgba(0,0,0,0.45))",
+          background: `linear-gradient(to right, rgba(0,0,0,${overlayLeft}) 40%, rgba(0,0,0,${overlayRight}))`,
           zIndex: 1,
+          transition: "background 0.5s ease",
         }}
       />
 
@@ -157,7 +310,7 @@ export default function HeroCarousel() {
             marginBottom: "16px",
           }}
         >
-          {slide.eyebrow}
+          {eyebrow}
         </p>
 
         <h1
@@ -171,12 +324,12 @@ export default function HeroCarousel() {
             whiteSpace: "pre-line",
           }}
         >
-          {slide.title}
+          {title}
         </h1>
 
-        {slide.cta.external ? (
+        {slide.cta_external ? (
           <a
-            href={slide.cta.href}
+            href={slide.cta_href}
             target="_blank"
             rel="noopener noreferrer"
             style={{
@@ -204,11 +357,11 @@ export default function HeroCarousel() {
             }}
           >
             <Play size={14} fill="currentColor" />
-            {slide.cta.label}
+            {cta_label}
           </a>
         ) : (
           <Link
-            href={slide.cta.href}
+            href={slide.cta_href}
             style={{
               display: "inline-flex",
               alignItems: "center",
@@ -233,12 +386,12 @@ export default function HeroCarousel() {
               (e.currentTarget as HTMLElement).style.color = "#fff";
             }}
           >
-            {slide.cta.label}
+            {cta_label}
           </Link>
         )}
 
         {/* Platform icons — slide 1 only */}
-        {slide.showPlatforms && (
+        {slide.show_platforms && (
           <div
             style={{
               position: "absolute",

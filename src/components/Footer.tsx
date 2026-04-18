@@ -1,11 +1,24 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
+import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { MapPin, Mail, Phone, Clock } from "lucide-react";
 import { FacebookIcon, YoutubeIcon, InstagramIcon, TwitterXIcon, TiktokIcon } from "./SocialIcons";
 
-const quickLinks = [
+export interface FooterSettings {
+  tagline?: string;
+  address?: string;
+  email?: string;
+  phone?: string;
+  hours?: string;
+  social?: { facebook?: string; youtube?: string; instagram?: string; twitter?: string; tiktok?: string };
+  quick_links?: { label: string; href: string }[];
+  ministry_links?: { label: string; href: string }[];
+  logo_url?: string;
+}
+
+const DEFAULT_QUICK_LINKS = [
   { label: "Home", href: "/" },
   { label: "Who We Are", href: "/who-we-are" },
   { label: "Meet Dr. Wesley", href: "/meet-wesley" },
@@ -16,7 +29,7 @@ const quickLinks = [
   { label: "Contact", href: "/contact" },
 ];
 
-const ministryLinks = [
+const DEFAULT_MINISTRY_LINKS = [
   { label: "Gospel Festivals", href: "/ministries/gospel-festivals" },
   { label: "Renewals & Revivals", href: "/ministries/renewals-revivals" },
   { label: "Marriage & Family Seminars", href: "/ministries/marriage-family" },
@@ -24,69 +37,54 @@ const ministryLinks = [
   { label: "Youth Outreach", href: "/ministries/youth-outreach" },
 ];
 
-const social = [
-  { icon: FacebookIcon, href: "https://www.facebook.com/wesleypaul.org/", label: "Facebook" },
-  { icon: YoutubeIcon, href: "https://www.youtube.com/@DrWesleyPaul", label: "YouTube" },
-  { icon: InstagramIcon, href: "https://www.instagram.com/drwesleypaul/", label: "Instagram" },
-  { icon: TwitterXIcon, href: "https://twitter.com/DrWesleyPaul", label: "Twitter/X" },
-  { icon: TiktokIcon, href: "https://www.tiktok.com/@DrWesleyPaul", label: "TikTok" },
-];
-
-const contactDetails = [
-  { icon: MapPin, lines: ["P.O. Box 88, Springfield, KY 40069"] },
-  { icon: Mail, lines: ["info@wesleypaul.org"], href: "mailto:info@wesleypaul.org" },
-  { icon: Phone, lines: ["+1 (859) 806-6424"], href: "tel:+18598066424" },
-  { icon: Clock, lines: ["Mon – Fri: 9:00 AM – 6:00 PM"] },
-];
-
 const FT = "rgba(255,255,255,0.55)";
 const FT_HOVER = "#fff";
 const BORDER = "rgba(255,255,255,0.08)";
 const BG = "#0a1628";
 
-export default function Footer() {
+interface FooterTranslation { tagline?: string }
+
+export default function Footer({ settings, logo }: { settings?: FooterSettings; logo?: string }) {
+  const searchParams = useSearchParams();
+  const [lang, setLang] = useState("en");
+  const [tr, setTr] = useState<FooterTranslation>({});
+
+  useEffect(() => {
+    setLang(searchParams.get("lang") ?? "en");
+  }, [searchParams]);
+
+  useEffect(() => {
+    setTr({});
+    if (lang === "en") return;
+    fetch(`/api/footer-translation?lang=${lang}`)
+      .then(r => r.json())
+      .then((d: { translation?: FooterTranslation }) => { if (d.translation) setTr(d.translation); })
+      .catch(() => {});
+  }, [lang]);
+
+  const tagline = tr.tagline || settings?.tagline || "A global evangelistic ministry committed to proclaiming the life-transforming message of Jesus Christ and strengthening marriages and families across the world.";
+  const address = settings?.address ?? "P.O. Box 88, Springfield, KY 40069";
+  const email = settings?.email ?? "info@wesleypaul.org";
+  const phone = settings?.phone ?? "+1 (859) 806-6424";
+  const hours = settings?.hours ?? "Mon – Fri: 9:00 AM – 6:00 PM";
+  const social = [
+    { icon: FacebookIcon, href: settings?.social?.facebook || "https://www.facebook.com/wesleypaul.org/", label: "Facebook" },
+    { icon: YoutubeIcon, href: settings?.social?.youtube || "https://www.youtube.com/@DrWesleyPaul", label: "YouTube" },
+    { icon: InstagramIcon, href: settings?.social?.instagram || "https://www.instagram.com/drwesleypaul/", label: "Instagram" },
+    { icon: TwitterXIcon, href: settings?.social?.twitter || "https://twitter.com/DrWesleyPaul", label: "Twitter/X" },
+    { icon: TiktokIcon, href: settings?.social?.tiktok || "https://www.tiktok.com/@DrWesleyPaul", label: "TikTok" },
+  ];
+  const quickLinks = settings?.quick_links && settings.quick_links.length > 0 ? settings.quick_links : DEFAULT_QUICK_LINKS;
+  const ministryLinks = settings?.ministry_links && settings.ministry_links.length > 0 ? settings.ministry_links : DEFAULT_MINISTRY_LINKS;
+  const contactDetails = [
+    { icon: MapPin, lines: [address] },
+    { icon: Mail, lines: [email], href: `mailto:${email}` },
+    { icon: Phone, lines: [phone], href: `tel:${phone.replace(/[^+\d]/g, "")}` },
+    { icon: Clock, lines: [hours] },
+  ];
+
   return (
     <footer style={{ backgroundColor: BG, color: "#fff" }}>
-      {/* Top CTA strip */}
-      <div style={{ backgroundColor: "#1B3A76", padding: "20px 24px" }}>
-        <div
-          style={{
-            maxWidth: "1280px",
-            margin: "0 auto",
-            display: "flex",
-            flexWrap: "wrap",
-            alignItems: "center",
-            justifyContent: "space-between",
-            gap: "16px",
-          }}
-        >
-          <p style={{ fontWeight: 700, fontSize: "15px", color: "#fff", margin: 0 }}>
-            Partner with us — every gift reaches another soul with the Gospel.
-          </p>
-          <Link
-            href="/give"
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "6px",
-              padding: "10px 24px",
-              backgroundColor: "#9B1030",
-              color: "#fff",
-              fontWeight: 700,
-              fontSize: "13px",
-              borderRadius: "3px",
-              textDecoration: "none",
-              whiteSpace: "nowrap",
-              transition: "background-color 0.2s",
-            }}
-            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#720B23")}
-            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#9B1030")}
-          >
-            Give Now
-          </Link>
-        </div>
-      </div>
-
       {/* Main footer body */}
       <div style={{ maxWidth: "1280px", margin: "0 auto", padding: "64px 24px 40px" }}>
         <div
@@ -102,18 +100,17 @@ export default function Footer() {
           <div style={{ gridColumn: "span 1" }}>
             {/* Logo */}
             <div style={{ marginBottom: "20px" }}>
-              <Image
-                src="/logo-nav.png"
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={logo || settings?.logo_url || "/logo-nav.png"}
                 alt="Wesley Paul International Ministries"
-                width={200}
-                height={64}
-                style={{ objectFit: "contain", display: "block" }}
+                style={{ height: 64, width: "auto", maxWidth: 200, objectFit: "contain", display: "block" }}
+                onError={(e) => { (e.currentTarget as HTMLImageElement).src = "/logo-nav.png"; }}
               />
             </div>
 
             <p style={{ fontSize: "13px", lineHeight: 1.8, color: FT, marginBottom: "24px" }}>
-              A global evangelistic ministry committed to proclaiming the life-transforming message
-              of Jesus Christ and strengthening marriages and families across the world.
+              {tagline}
             </p>
 
             {/* Social icons */}

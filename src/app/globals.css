@@ -260,6 +260,60 @@ label {
   color: #fff;
 }
 
+/* ── Responsive gallery ─────────────────────── */
+.gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+@media (min-width: 640px) {
+  .gallery-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+/* ── Responsive pillars ─────────────────────── */
+.pillar-item {
+  padding: 28px 20px;
+  text-align: center;
+  border-bottom: 1px solid #e9ecef;
+}
+.pillar-item:last-child {
+  border-bottom: none;
+}
+@media (min-width: 640px) {
+  .pillar-item {
+    padding: 40px;
+    border-right: 1px solid #e9ecef;
+    border-bottom: none;
+  }
+  .pillar-item:last-child {
+    border-right: none;
+  }
+}
+
+/* ── Welcome text column ────────────────────── */
+.welcome-text-col {
+  display: flex;
+  align-items: center;
+  padding: 40px 24px;
+}
+@media (min-width: 768px) {
+  .welcome-text-col {
+    padding: 64px 48px;
+  }
+}
+
+/* ── Responsive section padding ─────────────── */
+.section-padding-sm {
+  padding: 48px 24px;
+}
+@media (min-width: 768px) {
+  .section-padding-sm {
+    padding: 80px 24px;
+  }
+}
+
 /* ── WhatsApp floating btn ──────────────────── */
 .whatsapp-float {
   position: fixed;
@@ -283,3 +337,23 @@ label {
   70% { box-shadow: 0 0 0 12px rgba(37,211,102,0); }
   100% { box-shadow: 0 0 0 0 rgba(37,211,102,0); }
 }
+
+/* ── Custom Form left-content rich text styles ──────────────────────────── */
+.custom-form-left-content h1,
+.custom-form-left-content h2,
+.custom-form-left-content h3 { font-weight: 700; line-height: 1.3; margin: 0 0 12px; }
+.custom-form-left-content h1 { font-size: 1.8rem; }
+.custom-form-left-content h2 { font-size: 1.4rem; }
+.custom-form-left-content h3 { font-size: 1.15rem; }
+.custom-form-left-content p  { margin: 0 0 14px; }
+.custom-form-left-content ul,
+.custom-form-left-content ol { padding-left: 1.5em; margin: 0 0 14px; }
+.custom-form-left-content li { margin-bottom: 6px; }
+.custom-form-left-content blockquote {
+  border-left: 4px solid #C0185A; margin: 1em 0;
+  padding: 8px 16px; background: rgba(192,24,90,0.06);
+  font-style: italic; border-radius: 0 6px 6px 0;
+}
+.custom-form-left-content a { color: #2070B8; text-decoration: underline; }
+.custom-form-left-content strong { font-weight: 700; }
+.custom-form-left-content em { font-style: italic; }
