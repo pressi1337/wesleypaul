@@ -36,7 +36,8 @@ export async function POST(request: Request) {
 
     const response = Response.json({ success: true });
     const headers = new Headers(response.headers);
-    const secure = process.env.NODE_ENV === 'production' ? '; Secure' : '';
+    const proto = request.headers.get('x-forwarded-proto') ?? '';
+    const secure = proto === 'https' || request.url.startsWith('https://') ? '; Secure' : '';
     headers.set(
       'Set-Cookie',
       `admin_token=${token}; HttpOnly; Path=/; Max-Age=${7 * 24 * 3600}; SameSite=Lax${secure}`
