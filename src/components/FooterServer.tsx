@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import pool from "@/lib/db";
 import Footer, { FooterSettings } from "./Footer";
 
@@ -22,10 +23,10 @@ export default async function FooterServer() {
     const arr = rows as { content_json: string }[];
     if (arr.length > 0) {
       const settings = JSON.parse(arr[0].content_json) as FooterSettings;
-      return <Footer settings={settings} logo={logo} />;
+      return <Suspense fallback={null}><Footer settings={settings} logo={logo} /></Suspense>;
     }
   } catch {
     // Fall back to default if DB not ready
   }
-  return <Footer logo={logo} />;
+  return <Suspense fallback={null}><Footer logo={logo} /></Suspense>;
 }

@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import pool from "@/lib/db";
 import Navbar, { NavItemData } from "./Navbar";
 
@@ -40,8 +41,8 @@ export default async function NavbarServer() {
         .filter((c) => c.parent_id === item.id)
         .map((c) => ({ id: c.id, label: c.label, href: c.href, open_new_tab: c.open_new_tab })),
     }));
-    return <Navbar items={items} logo={logo} />;
+    return <Suspense fallback={null}><Navbar items={items} logo={logo} /></Suspense>;
   } catch {
-    return <Navbar logo={logo} />;
+    return <Suspense fallback={null}><Navbar logo={logo} /></Suspense>;
   }
 }
