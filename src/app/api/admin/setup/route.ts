@@ -6,13 +6,14 @@ export async function GET() {
   try {
     // Connect without specifying database first to create it
     connection = await mysql.createConnection({
-      host: 'localhost',
-      user: 'root',
-      password: 'password',
+      host: process.env.DB_HOST || 'localhost',
+      user: process.env.DB_USER || 'root',
+      password: process.env.DB_PASSWORD || 'password',
     });
 
-    await connection.query('CREATE DATABASE IF NOT EXISTS wesleypaul_cms');
-    await connection.query('USE wesleypaul_cms');
+    const dbName = process.env.DB_NAME || 'wesleypaul_cms';
+    await connection.query(`CREATE DATABASE IF NOT EXISTS \`${dbName}\``);
+    await connection.query(`USE \`${dbName}\``);
 
     // Create tables (use query() for DDL — execute() uses prepared statements which don't support some DDL)
     await connection.query(`
