@@ -10,6 +10,14 @@ const nextConfig: NextConfig = {
       { protocol: "http",  hostname: "91.108.111.40",    pathname: "/**" },
     ],
   },
+  async rewrites() {
+    return [
+      {
+        source: "/uploads/:path*",
+        destination: "/api/uploads/:path*",
+      },
+    ];
+  },
   async headers() {
     return [
       {
