@@ -24,8 +24,9 @@ async function getGalleryImages(): Promise<string[]> {
     );
     const arr = rows as { content_json: string }[];
     if (arr.length > 0) {
-      const data = JSON.parse(arr[0].content_json) as string[];
+      const data = JSON.parse(arr[0].content_json) as string[] | { images?: string[] };
       if (Array.isArray(data) && data.length > 0) return data;
+      if (!Array.isArray(data) && data.images?.length) return data.images;
     }
   } catch { /* fall through */ }
   return DEFAULT_IMAGES;
