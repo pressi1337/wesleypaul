@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight, Calendar, BookOpen, Newspaper, Tag } from "lucide-react";
@@ -55,8 +55,31 @@ interface Props {
   initialPosts: PostCard[];
 }
 
+// Placeholder posts shown in the site editor preview when no real posts exist
+function makePlaceholders(postType: string, count: number): PostCard[] {
+  const labels: Record<string, string> = { news: "News Article", blog: "Blog Post", event: "Event" };
+  const label = labels[postType] ?? "Post";
+  return Array.from({ length: count }, (_, i) => ({
+    id: -(i + 1),
+    title: `Example ${label} ${i + 1}`,
+    slug: "#",
+    post_type: postType,
+    excerpt: "This is a preview placeholder. Real content will appear here once posts are published.",
+    featured_image: "",
+    date: new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" }),
+    event_date: postType === "event" ? new Date().toISOString() : undefined,
+    tags: "example,preview",
+  }));
+}
+
 export default function HomePostsSection({ contentKey, postType, initialConfig, initialPosts }: Props) {
   const [config, setConfig] = useState<PostsSectionConfig>(initialConfig);
+  const [isPreview, setIsPreview] = useState(false);
+
+  // Detect preview (iframe) context — client only
+  useEffect(() => {
+    setIsPreview(window.self !== window.top);
+  }, []);
 
   useEffect(() => {
     const handler = (e: MessageEvent) => {
@@ -106,8 +129,18 @@ export default function HomePostsSection({ contentKey, postType, initialConfig, 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lang]);
 
+  const limit = config.limit ?? 3;
+
+  // In preview: show placeholder cards if no real posts; always apply live limit
+  const displayPosts = useMemo(() => {
+    const base = initialPosts.length > 0 ? initialPosts : (isPreview ? makePlaceholders(postType, limit) : []);
+    return base.slice(0, limit);
+  }, [initialPosts, isPreview, postType, limit]);
+
+  const isPlaceholder = initialPosts.length === 0 && isPreview;
+
   if (config.show === false) return null;
-  if (initialPosts.length === 0) return null;
+  if (displayPosts.length === 0) return null;
 
   const heading      = trHeading;
   const eyebrow      = trEyebrow;
@@ -134,8 +167,13 @@ export default function HomePostsSection({ contentKey, postType, initialConfig, 
         </div>
 
         {/* Cards grid */}
+        {isPlaceholder && (
+          <div style={{ marginBottom: 16, padding: "7px 14px", background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 7, fontSize: 12, color: "#92400e", display: "inline-flex", alignItems: "center", gap: 6 }}>
+            ⚠ Preview only — publish posts to show real content
+          </div>
+        )}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 28 }}>
-          {initialPosts.map(post => {
+          {displayPosts.map(post => {
             // Apply saved translation for current lang
             let cardTitle   = post.title;
             let cardExcerpt = post.excerpt;

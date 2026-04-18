@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { useState, useEffect, useRef } from "react";
-import { useSearchParams } from "next/navigation";
-import { Menu, X, ChevronDown, Heart, ChevronRight } from "lucide-react";
+import type { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
+import { useSearchParams, useRouter, usePathname } from "next/navigation";
+import { Menu, X, ChevronDown, Heart, ChevronRight, Check } from "lucide-react";
 import { FacebookIcon, YoutubeIcon, InstagramIcon } from "./SocialIcons";
 import LangSwitcher, { REGIONS } from "./LangSwitcher";
 
@@ -138,6 +139,58 @@ function NavLogo({ src }: { src: string }) {
   );
 }
 
+const STORAGE_KEY = "preferred_lang";
+
+function MobileLangPanel({
+  lang, pathname, router, onClose,
+}: {
+  lang: string;
+  pathname: string;
+  router: AppRouterInstance;
+  onClose: () => void;
+}) {
+  const switchLang = (code: string) => {
+    localStorage.setItem(STORAGE_KEY, code);
+    const params = new URLSearchParams(window.location.search);
+    if (code === "en") params.delete("lang"); else params.set("lang", code);
+    const qs = params.toString();
+    router.push(qs ? `${pathname}?${qs}` : pathname);
+    onClose();
+  };
+
+  return (
+    <div style={{ paddingTop: 14, borderTop: "1px solid rgba(255,255,255,0.06)", marginTop: 4 }}>
+      <div style={{ fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,0.3)", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 12 }}>
+        Select Language
+      </div>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+        {REGIONS.flatMap(r => r.languages.map(l => ({ ...l, flag: r.flag }))).map(l => {
+          const active = lang === l.code;
+          return (
+            <button
+              key={l.code}
+              onClick={() => switchLang(l.code)}
+              style={{
+                display: "flex", alignItems: "center", gap: 7,
+                padding: "9px 14px", borderRadius: 8,
+                background: active ? "rgba(32,112,184,0.25)" : "rgba(255,255,255,0.07)",
+                border: `1px solid ${active ? "rgba(32,112,184,0.6)" : "rgba(255,255,255,0.12)"}`,
+                color: active ? "#93c5fd" : "rgba(255,255,255,0.85)",
+                fontSize: 13, fontWeight: active ? 700 : 500,
+                cursor: "pointer", transition: "all 0.15s",
+              }}
+            >
+              <span style={{ fontSize: 18, lineHeight: 1 }}>{l.flag}</span>
+              <span>{l.nativeLabel}</span>
+              {active && <Check size={12} style={{ color: "#93c5fd", marginLeft: 2 }} />}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 export default function Navbar({ items, logo }: { items?: NavItemData[]; logo?: string }) {
   const baseItems = items && items.length > 0 ? items : DEFAULT_NAV_ITEMS;
   const [displayItems, setDisplayItems] = useState<NavItemData[]>(baseItems);
@@ -147,6 +200,8 @@ export default function Navbar({ items, logo }: { items?: NavItemData[]; logo?: 
   const navRef = useRef<HTMLDivElement>(null);
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const searchParams = useSearchParams();
+  const router   = useRouter();
+  const pathname = usePathname();
   const [lang, setLang] = useState("en");
   useEffect(() => {
     setLang(searchParams.get("lang") ?? "en");
@@ -542,28 +597,8 @@ export default function Navbar({ items, logo }: { items?: NavItemData[]; logo?: 
                 )
               )}
 
-              {/* Mobile Language Switcher — grouped by region like CFAN */}
-              <div style={{ paddingTop: "12px", borderTop: "1px solid rgba(255,255,255,0.06)", marginTop: 4 }}>
-                <div style={{ fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,0.3)", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 10 }}>Select Language</div>
-                {REGIONS.map(region => (
-                  <div key={region.code} style={{ marginBottom: 8 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 5 }}>
-                      <span style={{ fontSize: 16 }}>{region.flag}</span>
-                      <span style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.45)", textTransform: "uppercase", letterSpacing: "0.06em" }}>{region.country}</span>
-                    </div>
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: 6, paddingLeft: 24 }}>
-                      {region.languages.map(l => (
-                        <Link key={l.code}
-                          href={l.code === "en" ? (typeof window !== "undefined" ? window.location.pathname : "/") : `${typeof window !== "undefined" ? window.location.pathname : "/"}?lang=${l.code}`}
-                          onClick={() => setMobileOpen(false)}
-                          style={{ display: "flex", alignItems: "center", gap: 4, padding: "5px 11px", borderRadius: 5, background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.85)", fontSize: 12, fontWeight: 600, textDecoration: "none" }}>
-                          {l.nativeLabel}
-                        </Link>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
+              {/* Mobile Language Switcher */}
+              <MobileLangPanel lang={lang} pathname={pathname} router={router} onClose={() => setMobileOpen(false)} />
 
               {/* Mobile CTAs */}
               <div style={{ paddingTop: "16px", display: "flex", flexDirection: "column", gap: "10px" }}>

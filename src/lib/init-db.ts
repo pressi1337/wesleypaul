@@ -110,6 +110,69 @@ export async function ensureTables() {
       `ALTER TABLE media ADD UNIQUE INDEX IF NOT EXISTS uq_file_path (file_path(255))`
     ).catch(() => { /* ignore if already exists or old MySQL */ });
 
+    // Performance indexes — idempotent (IF NOT EXISTS)
+    await conn.query(`ALTER TABLE posts ADD INDEX IF NOT EXISTS idx_posts_type_status (post_type, status)`).catch(() => {});
+    await conn.query(`ALTER TABLE posts ADD INDEX IF NOT EXISTS idx_posts_slug (slug(191))`).catch(() => {});
+    await conn.query(`ALTER TABLE page_sections ADD INDEX IF NOT EXISTS idx_sections_page (page_id)`).catch(() => {});
+    await conn.query(`ALTER TABLE form_submissions ADD INDEX IF NOT EXISTS idx_fsub_form (form_id)`).catch(() => {});
+    await conn.query(`ALTER TABLE nav_items ADD INDEX IF NOT EXISTS idx_nav_parent (parent_id)`).catch(() => {});
+
+    // ── Analytics: page visit tracking ───────────────────────────────────────
+    await conn.query(`
+      CREATE TABLE IF NOT EXISTS analytics_visits (
+        id           INT AUTO_INCREMENT PRIMARY KEY,
+        session_id   VARCHAR(64)  NOT NULL,
+        page_path    VARCHAR(500) NOT NULL,
+        ip_address   VARCHAR(50)  NOT NULL DEFAULT '',
+        user_agent   VARCHAR(500) DEFAULT '',
+        referrer     VARCHAR(500) DEFAULT '',
+        country      VARCHAR(100) DEFAULT '',
+        region       VARCHAR(100) DEFAULT '',
+        city         VARCHAR(100) DEFAULT '',
+        lat          DECIMAL(9,6) NULL,
+        lng          DECIMAL(9,6) NULL,
+        time_spent_s INT          DEFAULT 0,
+        is_bot       TINYINT(1)   DEFAULT 0,
+        created_at   TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
+        INDEX idx_av_session  (session_id),
+        INDEX idx_av_created  (created_at),
+        INDEX idx_av_ip       (ip_address(20)),
+        INDEX idx_av_page     (page_path(100))
+      )
+    `);
+
+    // ── IP geolocation cache ──────────────────────────────────────────────────
+    await conn.query(`
+      CREATE TABLE IF NOT EXISTS ip_geocache (
+        ip_address VARCHAR(50) NOT NULL,
+        country    VARCHAR(100) DEFAULT '',
+        region     VARCHAR(100) DEFAULT '',
+        city       VARCHAR(100) DEFAULT '',
+        lat        DECIMAL(9,6) NULL,
+        lng        DECIMAL(9,6) NULL,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        PRIMARY KEY (ip_address)
+      )
+    `);
+
+    // ── Audit log ─────────────────────────────────────────────────────────────
+    await conn.query(`
+      CREATE TABLE IF NOT EXISTS audit_logs (
+        id              INT AUTO_INCREMENT PRIMARY KEY,
+        admin_id        INT          NULL,
+        admin_username  VARCHAR(100) NOT NULL DEFAULT '',
+        action          VARCHAR(100) NOT NULL,
+        resource_type   VARCHAR(100) NOT NULL DEFAULT '',
+        resource_id     VARCHAR(100) DEFAULT '',
+        details         TEXT         DEFAULT '',
+        ip_address      VARCHAR(50)  DEFAULT '',
+        created_at      TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
+        INDEX idx_al_created (created_at),
+        INDEX idx_al_admin   (admin_id),
+        INDEX idx_al_action  (action(50))
+      )
+    `);
+
     // Seed home page if it doesn't exist yet
     await conn.query(`
       INSERT IGNORE INTO pages (title, slug, layout, status, meta_title, meta_description)

@@ -8,6 +8,7 @@ import {
   BarChart2, ChevronRight, Menu, X, LogOut,
   Settings, Eye, Plus, Layers, Navigation, Image as ImageIcon, Inbox,
   BookOpen, ClipboardList, Megaphone, GalleryHorizontal, PlayCircle,
+  Activity, Shield, HardDrive,
 } from "lucide-react";
 
 const NAV_SECTIONS = [
@@ -38,6 +39,14 @@ const NAV_SECTIONS = [
     items: [
       { label: "SEO Manager", href: "/admin/seo", icon: Search },
       { label: "Marketing", href: "/admin/marketing", icon: BarChart2 },
+    ],
+  },
+  {
+    heading: "Analytics & Security",
+    items: [
+      { label: "Visitor Analytics", href: "/admin/visit-analytics", icon: Activity },
+      { label: "Audit Log",         href: "/admin/audit-log",        icon: Shield },
+      { label: "Backup",            href: "/admin/backup",           icon: HardDrive },
     ],
   },
   {

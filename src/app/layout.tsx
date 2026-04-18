@@ -5,6 +5,7 @@ import SiteShell from "@/components/SiteShell";
 import NavbarServer from "@/components/NavbarServer";
 import FooterServer from "@/components/FooterServer";
 import AnalyticsScripts from "@/components/AnalyticsScripts";
+import VisitTracker from "@/components/VisitTracker";
 
 const poppins = Poppins({
   weight: ["300", "400", "500", "600", "700", "800"],
@@ -49,6 +50,7 @@ export default function RootLayout({
     <html lang="en" className={`${poppins.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col" style={{ fontFamily: "var(--font-poppins), sans-serif" }}>
         <AnalyticsScripts />
+        <VisitTracker />
         <SiteShell navbar={<NavbarServer />} footer={<FooterServer />}>{children}</SiteShell>
       </body>
     </html>

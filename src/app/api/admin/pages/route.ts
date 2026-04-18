@@ -1,6 +1,7 @@
 import pool from '@/lib/db';
 import { getAdminFromRequest } from '@/lib/auth';
 import { ensureHomePage } from '@/lib/init-db';
+import { logAudit } from '@/lib/audit';
 
 export async function GET(request: Request) {
   const admin = getAdminFromRequest(request);
@@ -31,6 +32,7 @@ export async function POST(request: Request) {
       [title, slug, layout, status, meta_title, meta_description, meta_keywords]
     );
     const insertResult = result as { insertId: number };
+    await logAudit(request, "create", "page", insertResult.insertId, `Created page: ${title}`);
     return Response.json({ success: true, id: insertResult.insertId }, { status: 201 });
   } catch (error) {
     return Response.json({ error: String(error) }, { status: 500 });

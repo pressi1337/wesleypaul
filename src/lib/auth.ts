@@ -1,6 +1,6 @@
 import jwt from 'jsonwebtoken';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'wesleypaul-cms-secret-2024';
+const JWT_SECRET = process.env.JWT_SECRET || 'wesleypaul-cms-secret-2024-dev-only';
 
 export interface AdminPayload {
   id: number;

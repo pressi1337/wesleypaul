@@ -608,7 +608,8 @@ export async function GET() {
     );
     const rows = existing as { id: number }[];
     if (rows.length === 0) {
-      const hash = await bcrypt.hash('admin123', 10);
+      const setupPassword = process.env.ADMIN_SETUP_PASSWORD || 'admin123';
+      const hash = await bcrypt.hash(setupPassword, 10);
       await connection.query(
         'INSERT INTO admin_users (username, password_hash) VALUES (?, ?)',
         ['admin', hash]
@@ -636,7 +637,7 @@ export async function GET() {
 
     return Response.json({
       success: true,
-      message: 'Database setup complete. Admin user: admin / admin123',
+      message: 'Database setup complete. Admin user: admin / (your ADMIN_SETUP_PASSWORD)',
     });
   } catch (error) {
     if (connection) await connection.end().catch(() => {});

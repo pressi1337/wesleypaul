@@ -225,11 +225,18 @@ export default function MediaPickerModal({ accept = "any", onPick, onClose }: Pr
                           style={{ width: "100%", height: "100%", objectFit: "cover" }}
                         />
                       ) : isVideo(item) ? (
-                        <div style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 6 }}>
-                          <Film size={28} style={{ color: "#7c3aed" }} />
-                          <span style={{ fontSize: 9, color: "#94a3b8", textAlign: "center", padding: "0 6px" }}>
-                            {item.mime_type.split("/")[1]?.toUpperCase()}
-                          </span>
+                        <div style={{ width: "100%", height: "100%", position: "relative" }}>
+                          {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+                          <video src={item.file_path} preload="metadata" muted
+                            style={{ width: "100%", height: "100%", objectFit: "cover", display: "block", opacity: 0.75 }} />
+                          <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 4 }}>
+                            <div style={{ width: 32, height: 32, borderRadius: "50%", background: "rgba(255,255,255,0.9)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                              <Film size={16} style={{ color: "#7c3aed" }} />
+                            </div>
+                            <span style={{ fontSize: 9, color: "rgba(255,255,255,0.9)", fontWeight: 700, background: "rgba(124,58,237,0.7)", padding: "1px 5px", borderRadius: 3 }}>
+                              {item.mime_type.split("/")[1]?.toUpperCase()}
+                            </span>
+                          </div>
                         </div>
                       ) : (
                         <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>

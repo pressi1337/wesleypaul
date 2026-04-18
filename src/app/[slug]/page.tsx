@@ -1,6 +1,7 @@
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
 import type React from "react";
+import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import ContactFormClient from "@/components/ContactFormClient";
@@ -552,11 +553,13 @@ async function CustomFormSection({ content }: { content: Record<string, unknown>
           {formHeading}
         </h3>
       )}
-      <CustomFormRenderer
-        formId={form.id}
-        fields={fields as Parameters<typeof CustomFormRenderer>[0]["fields"]}
-        successMessage={form.success_message}
-      />
+      <Suspense>
+        <CustomFormRenderer
+          formId={form.id}
+          fields={fields as Parameters<typeof CustomFormRenderer>[0]["fields"]}
+          successMessage={form.success_message}
+        />
+      </Suspense>
     </div>
   );
 

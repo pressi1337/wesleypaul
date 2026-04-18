@@ -1,5 +1,6 @@
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
+import { Suspense } from "react";
 import type { Metadata } from "next";
 import pool from "@/lib/db";
 import GallerySection from "@/components/GallerySection";
@@ -52,12 +53,14 @@ export default async function GalleryPage() {
       </div>
 
       {/* Gallery grid with lightbox */}
-      <GallerySection
-        images={images}
-        heading=""
-        eyebrow=""
-        showViewAll={false}
-      />
+      <Suspense>
+        <GallerySection
+          images={images}
+          heading=""
+          eyebrow=""
+          showViewAll={false}
+        />
+      </Suspense>
     </div>
   );
 }

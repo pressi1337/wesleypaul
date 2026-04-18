@@ -1,5 +1,6 @@
 import pool from '@/lib/db';
 import { signToken, getAdminFromRequest } from '@/lib/auth';
+import { logAudit } from '@/lib/audit';
 import bcrypt from 'bcryptjs';
 
 export async function GET(request: Request) {
@@ -31,12 +32,14 @@ export async function POST(request: Request) {
     }
 
     const token = signToken({ id: user.id, username: user.username });
+    await logAudit(request, "login", "auth", user.id, `Login: ${user.username}`);
 
     const response = Response.json({ success: true });
     const headers = new Headers(response.headers);
+    const secure = process.env.NODE_ENV === 'production' ? '; Secure' : '';
     headers.set(
       'Set-Cookie',
-      `admin_token=${token}; HttpOnly; Path=/; Max-Age=${7 * 24 * 3600}; SameSite=Lax`
+      `admin_token=${token}; HttpOnly; Path=/; Max-Age=${7 * 24 * 3600}; SameSite=Lax${secure}`
     );
 
     return new Response(response.body, { status: 200, headers });
@@ -46,7 +49,8 @@ export async function POST(request: Request) {
   }
 }
 
-export async function DELETE() {
+export async function DELETE(request: Request) {
+  await logAudit(request, "logout", "auth");
   const response = Response.json({ success: true });
   const headers = new Headers(response.headers);
   headers.set(

@@ -1,6 +1,7 @@
 import { getAdminFromRequest } from '@/lib/auth';
 import pool from '@/lib/db';
 import { ensureTables } from '@/lib/init-db';
+import { logAudit } from '@/lib/audit';
 
 export async function GET(request: Request) {
   const admin = getAdminFromRequest(request);
@@ -59,6 +60,7 @@ export async function POST(request: Request) {
     const insertResult = result as { insertId: number };
     const [rows] = await pool.execute('SELECT * FROM posts WHERE id = ?', [insertResult.insertId]);
     const posts = rows as unknown[];
+    await logAudit(request, "create", "post", insertResult.insertId, `Created ${post_type}: ${title}`);
     return Response.json({ post: posts[0] }, { status: 201 });
   } catch (error) {
     return Response.json({ error: String(error) }, { status: 500 });

@@ -39,3 +39,10 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# uploaded media — never commit user uploads to git
+/public/uploads/*
+!/public/uploads/.gitkeep
+
+# PM2 logs
+/logs/*.log

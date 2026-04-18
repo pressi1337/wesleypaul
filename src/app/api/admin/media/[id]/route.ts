@@ -44,13 +44,15 @@ export async function PUT(
 
   try {
     const { id } = await params;
-    const body = await request.json() as { alt_text?: string };
-    const { alt_text = '' } = body;
+    const body = await request.json() as { alt_text?: string; original_name?: string };
+    const { alt_text, original_name } = body;
 
-    await pool.execute(
-      'UPDATE media SET alt_text = ? WHERE id = ?',
-      [alt_text, id]
-    );
+    if (original_name !== undefined) {
+      await pool.execute('UPDATE media SET original_name = ? WHERE id = ?', [original_name.trim() || 'untitled', id]);
+    }
+    if (alt_text !== undefined) {
+      await pool.execute('UPDATE media SET alt_text = ? WHERE id = ?', [alt_text, id]);
+    }
     return Response.json({ success: true });
   } catch (error) {
     return Response.json({ error: String(error) }, { status: 500 });

@@ -1,5 +1,6 @@
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
+import { Suspense } from "react";
 import type { Metadata } from "next";
 import pool from "@/lib/db";
 import MediaPageClient from "./MediaPageClient";
@@ -24,11 +25,13 @@ async function getMediaData(): Promise<MediaSectionData> {
 export default async function MediaPage() {
   const data = await getMediaData();
   return (
-    <MediaPageClient
-      items={data.items ?? []}
-      heading={data.heading || "Watch & Listen to Dr. Wesley"}
-      eyebrow={data.eyebrow || "Media"}
-      savedTranslations={data.translations ?? {}}
-    />
+    <Suspense>
+      <MediaPageClient
+        items={data.items ?? []}
+        heading={data.heading || "Watch & Listen to Dr. Wesley"}
+        eyebrow={data.eyebrow || "Media"}
+        savedTranslations={data.translations ?? {}}
+      />
+    </Suspense>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { Mail, Calendar, Trash2, CheckCircle, RefreshCw, Eye, ClipboardList, Download, X, Search, ChevronLeft, ChevronRight } from "lucide-react";
 import * as XLSX from "xlsx";
 
@@ -137,12 +137,15 @@ function Pagination({ page, total, pageSize, onChange }: { page: number; total: 
 }
 
 /* ── Main page ──────────────────────────────────────────────────────────────── */
+interface FormMeta { id: number; name: string; }
+
 export default function SubmissionsPage() {
-  const [tab, setTab] = useState<"contact" | "booking" | "custom">("contact");
+  // tab: "contact" | "booking" | number (form id)
+  const [tab, setTab] = useState<"contact" | "booking" | number>("contact");
   const [contactSubs, setContactSubs] = useState<ContactSub[]>([]);
   const [bookingSubs, setBookingSubs] = useState<BookingSub[]>([]);
   const [formSubs, setFormSubs] = useState<FormSub[]>([]);
-  const [formsCount, setFormsCount] = useState(0);
+  const [forms, setForms] = useState<FormMeta[]>([]);
   const [loading, setLoading] = useState(true);
   const [modal, setModal] = useState<ContactSub | BookingSub | FormSub | null>(null);
   const [toast, setToast] = useState<string | null>(null);
@@ -170,11 +173,15 @@ export default function SubmissionsPage() {
     setContactSubs(cr.submissions || []);
     setBookingSubs(br.submissions || []);
     setFormSubs(fr.submissions || []);
-    setFormsCount((fc as { forms?: unknown[] }).forms?.length ?? 0);
+    const formList = ((fc as { forms?: FormMeta[] }).forms || []).map(f => ({ id: f.id, name: f.name }));
+    setForms(formList);
     setLoading(false);
   }, []);
 
   useEffect(() => { load(); }, [load]);
+
+  const isCustomTab = typeof tab === "number";
+  const activeFormId = isCustomTab ? (tab as number) : null;
 
   const updateStatus = async (id: number, status: string, type: string) => {
     if (type === "custom") {
@@ -221,12 +228,27 @@ export default function SubmissionsPage() {
     const t = q(bookingSearch);
     return !t || q(s.name).includes(t) || q(s.email).includes(t) || q(s.event_type).includes(t) || q(s.organization).includes(t) || q(s.status).includes(t);
   });
-  const filteredCustom = formSubs.filter(s => {
+  const filteredCustom = useMemo(() => {
+    const base = activeFormId !== null ? formSubs.filter(s => s.form_id === activeFormId) : formSubs;
     const t = q(customSearch);
-    if (!t) return true;
-    const data = parseDataJson(s.data_json);
-    return q(s.form_name).includes(t) || q(s.status).includes(t) || Object.values(data).some(v => q(String(v)).includes(t));
-  });
+    if (!t) return base;
+    return base.filter(s => {
+      const data = parseDataJson(s.data_json);
+      return q(s.form_name).includes(t) || q(s.status).includes(t) || Object.values(data).some(v => q(String(v)).includes(t));
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formSubs, activeFormId, customSearch]);
+
+  // Submission counts per form id for badges
+  const formSubCounts = useMemo(() => {
+    const map = new Map<number, { total: number; newCount: number }>();
+    formSubs.forEach(s => {
+      const e = map.get(s.form_id);
+      if (e) { e.total++; if (s.status === "new") e.newCount++; }
+      else map.set(s.form_id, { total: 1, newCount: s.status === "new" ? 1 : 0 });
+    });
+    return map;
+  }, [formSubs]);
 
   // Paginated slices
   const pagedContact = filteredContact.slice((contactPage - 1) * PAGE_SIZE, contactPage * PAGE_SIZE);
@@ -235,13 +257,14 @@ export default function SubmissionsPage() {
 
   // Reset page when search changes
   const setContactSearchR = (v: string) => { setContactSearch(v); setContactPage(1); };
-  const setBookingSearchR  = (v: string) => { setBookingSearch(v); setBookingPage(1); };
-  const setCustomSearchR   = (v: string) => { setCustomSearch(v); setCustomPage(1); };
+  const setBookingSearchR = (v: string) => { setBookingSearch(v); setBookingPage(1); };
+  const setCustomSearchR  = (v: string) => { setCustomSearch(v); setCustomPage(1); };
 
   const th: React.CSSProperties = { textAlign: "left", padding: "10px 16px", fontSize: 11, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.05em" };
 
   const search = tab === "contact" ? contactSearch : tab === "booking" ? bookingSearch : customSearch;
   const setSearch = tab === "contact" ? setContactSearchR : tab === "booking" ? setBookingSearchR : setCustomSearchR;
+  const activeFormName = isCustomTab ? (forms.find(f => f.id === activeFormId)?.name ?? "Custom Form") : "";
 
   return (
     <div style={{ maxWidth: 1100 }}>
@@ -264,6 +287,7 @@ export default function SubmissionsPage() {
               else if (tab === "booking") exportBooking(filteredBooking);
               else exportCustom(filteredCustom);
             }}
+
             style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 14px", background: "#0a7c52", color: "#fff", border: "none", borderRadius: 7, cursor: "pointer", fontSize: 13, fontWeight: 600, boxShadow: "0 1px 3px rgba(0,0,0,0.1)" }}>
             <Download size={13} /> Export Excel
           </button>
@@ -275,28 +299,53 @@ export default function SubmissionsPage() {
 
       {/* Tabs */}
       <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
-        {(["contact", "booking", "custom"] as const).map(t => {
+        {/* Fixed tabs */}
+        {(["contact", "booking"] as const).map(t => {
           const isActive = tab === t;
-          const badge = t === "contact" ? newCount(contactSubs) : t === "booking" ? newCount(bookingSubs) : newCount(formSubs);
+          const badge = t === "contact" ? newCount(contactSubs) : newCount(bookingSubs);
           return (
             <button key={t} onClick={() => setTab(t)}
               style={{ padding: "9px 20px", borderRadius: 8, cursor: "pointer", fontSize: 13.5, fontWeight: 700, display: "flex", alignItems: "center", gap: 8,
                 background: isActive ? "#2070B8" : "#fff", color: isActive ? "#fff" : "#64748b",
                 boxShadow: isActive ? "0 2px 8px rgba(32,112,184,0.25)" : "0 1px 3px rgba(0,0,0,0.06)",
                 border: isActive ? "none" : "1px solid #e2e8f0" }}>
-              {t === "contact" ? <Mail size={14} /> : t === "booking" ? <Calendar size={14} /> : <ClipboardList size={14} />}
-              {t === "contact" ? "Contact Messages" : t === "booking" ? "Booking Inquiries" : "Custom Forms"}
-              {t === "custom" && (
-                <span style={{ background: isActive ? "rgba(255,255,255,0.25)" : "#eff6ff", color: isActive ? "#fff" : "#2070B8", borderRadius: 20, fontSize: 11, fontWeight: 800, padding: "1px 7px" }}>
-                  {formsCount}
-                </span>
-              )}
+              {t === "contact" ? <Mail size={14} /> : <Calendar size={14} />}
+              {t === "contact" ? "Contact Messages" : "Booking Inquiries"}
               {badge > 0 && (
                 <span style={{ background: "#dc2626", color: "#fff", borderRadius: 20, fontSize: 11, fontWeight: 800, padding: "1px 7px" }}>{badge}</span>
               )}
             </button>
           );
         })}
+
+        {/* Dynamic form tabs — one per form */}
+        {forms.length > 0 && (
+          <>
+            <div style={{ width: 1, background: "#e2e8f0", margin: "4px 2px", alignSelf: "stretch" }} />
+            {forms.map(f => {
+              const isActive = tab === f.id;
+              const counts = formSubCounts.get(f.id);
+              return (
+                <button key={f.id} onClick={() => { setTab(f.id); setCustomPage(1); setCustomSearch(""); }}
+                  style={{ padding: "9px 18px", borderRadius: 8, cursor: "pointer", fontSize: 13.5, fontWeight: 700, display: "flex", alignItems: "center", gap: 7,
+                    background: isActive ? "#7c3aed" : "#fff", color: isActive ? "#fff" : "#64748b",
+                    boxShadow: isActive ? "0 2px 8px rgba(124,58,237,0.28)" : "0 1px 3px rgba(0,0,0,0.06)",
+                    border: isActive ? "none" : "1px solid #e2e8f0" }}>
+                  <ClipboardList size={14} />
+                  {f.name}
+                  {counts && counts.total > 0 && (
+                    <span style={{ background: isActive ? "rgba(255,255,255,0.25)" : "#f3f0ff", color: isActive ? "#fff" : "#7c3aed", borderRadius: 20, fontSize: 11, fontWeight: 800, padding: "1px 7px" }}>
+                      {counts.total}
+                    </span>
+                  )}
+                  {counts && counts.newCount > 0 && (
+                    <span style={{ background: "#dc2626", color: "#fff", borderRadius: 20, fontSize: 11, fontWeight: 800, padding: "1px 7px" }}>{counts.newCount}</span>
+                  )}
+                </button>
+              );
+            })}
+          </>
+        )}
       </div>
 
       {/* Search bar */}
@@ -305,7 +354,7 @@ export default function SubmissionsPage() {
         <input
           value={search}
           onChange={e => setSearch(e.target.value)}
-          placeholder={`Search ${tab === "contact" ? "contact" : tab === "booking" ? "booking" : "custom form"} submissions…`}
+          placeholder={`Search ${tab === "contact" ? "contact" : tab === "booking" ? "booking" : activeFormName} submissions…`}
           style={{ width: "100%", padding: "9px 12px 9px 34px", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 13.5, color: "#0f172a", outline: "none", boxSizing: "border-box", background: "#fff" }}
         />
         {search && (
@@ -319,17 +368,18 @@ export default function SubmissionsPage() {
       {loading ? (
         <div style={{ color: "#94a3b8", padding: "2rem 0" }}>Loading…</div>
 
-      ) : tab === "custom" ? (
+      ) : isCustomTab ? (
         filteredCustom.length === 0 ? (
           <div style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: 12, padding: "60px 24px", textAlign: "center" }}>
             <ClipboardList size={40} style={{ color: "#cbd5e1", margin: "0 auto 12px", display: "block" }} />
-            <p style={{ color: "#94a3b8", fontSize: 14 }}>{customSearch ? "No submissions match your search." : "No custom form submissions yet."}</p>
-            <p style={{ color: "#cbd5e1", fontSize: 12 }}>{formsCount} form{formsCount !== 1 ? "s" : ""} created</p>
+            <p style={{ color: "#94a3b8", fontSize: 14 }}>
+              {customSearch ? "No submissions match your search." : `No submissions for "${activeFormName}" yet.`}
+            </p>
           </div>
         ) : (
           <div style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: 12, overflow: "hidden" }}>
             <div style={{ padding: "10px 16px", background: "#f8fafc", borderBottom: "1px solid #e2e8f0", fontSize: 12, color: "#64748b" }}>
-              {formsCount} form{formsCount !== 1 ? "s" : ""} created &nbsp;·&nbsp; {filteredCustom.length} submission{filteredCustom.length !== 1 ? "s" : ""}
+              <strong style={{ color: "#374151" }}>{activeFormName}</strong> &nbsp;·&nbsp; {filteredCustom.length} submission{filteredCustom.length !== 1 ? "s" : ""}
               {customSearch && ` matching "${customSearch}"`}
             </div>
             <table style={{ width: "100%", borderCollapse: "collapse" }}>

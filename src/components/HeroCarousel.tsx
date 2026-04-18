@@ -261,6 +261,7 @@ export default function HeroCarousel({
               src={s.src}
               alt=""
               fill
+              priority={i === 0}
               style={{
                 objectFit: "cover",
                 objectPosition: pos,
@@ -268,7 +269,6 @@ export default function HeroCarousel({
                 transformOrigin: pos,
                 color: "transparent",
               }}
-              unoptimized
             />
           </div>
         );
