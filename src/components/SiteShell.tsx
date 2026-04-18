@@ -1,5 +1,6 @@
 "use client";
 
+import { Suspense } from "react";
 import { usePathname } from "next/navigation";
 import LangPreferenceModal from "./LangPreferenceModal";
 import PromoPopup from "./PromoPopup";
@@ -24,9 +25,9 @@ export default function SiteShell({
       {navbar}
       <main className="flex-1">{children}</main>
       {footer}
-      <LangPreferenceModal />
-      <PromoPopup />
-      <EventPromoTab />
+      <Suspense fallback={null}><LangPreferenceModal /></Suspense>
+      <Suspense fallback={null}><PromoPopup /></Suspense>
+      <Suspense fallback={null}><EventPromoTab /></Suspense>
     </>
   );
 }
