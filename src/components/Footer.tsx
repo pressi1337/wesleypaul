@@ -37,10 +37,11 @@ const DEFAULT_MINISTRY_LINKS = [
   { label: "Youth Outreach", href: "/ministries/youth-outreach" },
 ];
 
-const FT = "rgba(255,255,255,0.55)";
-const FT_HOVER = "#fff";
-const BORDER = "rgba(255,255,255,0.08)";
-const BG = "#0a1628";
+const FT       = "#64748b";
+const FT_HOVER  = "#1B3A76";
+const BORDER    = "rgba(0,0,0,0.08)";
+const BG        = "#ffffff";
+const HEADING   = "#1B3A76";
 
 interface FooterTranslation { tagline?: string }
 
@@ -84,7 +85,9 @@ export default function Footer({ settings, logo }: { settings?: FooterSettings; 
   ];
 
   return (
-    <footer style={{ backgroundColor: BG, color: "#fff" }}>
+    <footer style={{ backgroundColor: BG, color: "#1e293b", borderTop: "1px solid rgba(0,0,0,0.07)" }}>
+      {/* Elegant top accent line */}
+      <div style={{ height: 3, background: "linear-gradient(90deg, #1B3A76 0%, #9B1030 50%, #f5a623 100%)" }} />
       {/* Main footer body */}
       <div style={{ maxWidth: "1280px", margin: "0 auto", padding: "64px 24px 40px" }}>
         <div
@@ -129,7 +132,7 @@ export default function Footer({ settings, logo }: { settings?: FooterSettings; 
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    backgroundColor: "rgba(255,255,255,0.07)",
+                    backgroundColor: "#f1f5f9",
                     color: FT,
                     textDecoration: "none",
                     transition: "all 0.2s",
@@ -140,7 +143,7 @@ export default function Footer({ settings, logo }: { settings?: FooterSettings; 
                     (e.currentTarget as HTMLElement).style.color = "#fff";
                   }}
                   onMouseLeave={(e) => {
-                    (e.currentTarget as HTMLElement).style.backgroundColor = "rgba(255,255,255,0.07)";
+                    (e.currentTarget as HTMLElement).style.backgroundColor = "#f1f5f9";
                     (e.currentTarget as HTMLElement).style.color = FT;
                   }}
                 >
@@ -158,7 +161,7 @@ export default function Footer({ settings, logo }: { settings?: FooterSettings; 
                 fontWeight: 700,
                 letterSpacing: "0.18em",
                 textTransform: "uppercase",
-                color: "#f5a623",
+                color: HEADING,
                 marginBottom: "20px",
               }}
             >
@@ -197,7 +200,7 @@ export default function Footer({ settings, logo }: { settings?: FooterSettings; 
                 fontWeight: 700,
                 letterSpacing: "0.18em",
                 textTransform: "uppercase",
-                color: "#f5a623",
+                color: HEADING,
                 marginBottom: "20px",
               }}
             >
@@ -236,7 +239,7 @@ export default function Footer({ settings, logo }: { settings?: FooterSettings; 
                 fontWeight: 700,
                 letterSpacing: "0.18em",
                 textTransform: "uppercase",
-                color: "#f5a623",
+                color: HEADING,
                 marginBottom: "20px",
               }}
             >
@@ -279,12 +282,13 @@ export default function Footer({ settings, logo }: { settings?: FooterSettings; 
                 fontWeight: 700,
                 letterSpacing: "0.04em",
                 textDecoration: "none",
-                borderRadius: "3px",
-                border: "1px solid rgba(255,255,255,0.15)",
-                transition: "background-color 0.2s",
+                borderRadius: "4px",
+                border: "none",
+                transition: "background-color 0.2s, transform 0.15s",
+                boxShadow: "0 2px 10px rgba(27,58,118,0.25)",
               }}
-              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#1a5a9a")}
-              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#1B3A76")}
+              onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "#0F2454"; e.currentTarget.style.transform = "translateY(-1px)"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "#1B3A76"; e.currentTarget.style.transform = "none"; }}
             >
               Book Dr. Wesley
             </Link>
@@ -295,30 +299,45 @@ export default function Footer({ settings, logo }: { settings?: FooterSettings; 
         <div
           style={{
             borderTop: `1px solid ${BORDER}`,
-            paddingTop: "24px",
+            paddingTop: "20px",
             display: "flex",
             flexWrap: "wrap",
             alignItems: "center",
             justifyContent: "space-between",
-            gap: "12px",
+            gap: "10px",
           }}
         >
-          <p style={{ fontSize: "12px", color: "rgba(255,255,255,0.3)", margin: 0 }}>
-            &copy; {new Date().getFullYear()} Wesley Paul International Ministries. All rights reserved.
+          <p style={{ fontSize: "12px", color: "#94a3b8", margin: 0 }}>
+            &copy; 2026 Wesley Paul International Ministries. All rights reserved.
           </p>
-          <div style={{ display: "flex", gap: "20px" }}>
-            {["Privacy Policy", "Terms of Use", "Contact"].map((label, i) => (
-              <Link
-                key={label}
-                href="/contact"
-                style={{ fontSize: "12px", color: "rgba(255,255,255,0.3)", textDecoration: "none", transition: "color 0.2s" }}
-                onMouseEnter={(e) => (e.currentTarget.style.color = "#fff")}
-                onMouseLeave={(e) => (e.currentTarget.style.color = "rgba(255,255,255,0.3)")}
-              >
-                {label}
-              </Link>
-            ))}
-          </div>
+
+          {/* Attribution */}
+          <p style={{ fontSize: "12px", color: "#94a3b8", margin: 0, display: "flex", alignItems: "center", gap: "5px" }}>
+            Created &amp; Maintained by{" "}
+            <a
+              href="https://kreatorsmediahouse.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                color: "#1B3A76",
+                fontWeight: 600,
+                textDecoration: "none",
+                borderBottom: "1px solid rgba(27,58,118,0.25)",
+                paddingBottom: "1px",
+                transition: "color 0.2s, border-color 0.2s",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = "#9B1030";
+                e.currentTarget.style.borderColor = "rgba(155,16,48,0.4)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = "#1B3A76";
+                e.currentTarget.style.borderColor = "rgba(27,58,118,0.25)";
+              }}
+            >
+              Kreators Media House
+            </a>
+          </p>
         </div>
       </div>
     </footer>

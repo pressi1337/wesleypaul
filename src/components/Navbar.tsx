@@ -46,11 +46,13 @@ const socialLinks = [
   { icon: FacebookIcon, href: "https://www.facebook.com/wesleypaul.org/", label: "Facebook" },
 ];
 
-const NAV_BG = "#0d1523";
-const NAV_BORDER = "rgba(255,255,255,0.07)";
-const ACCENT = "#9B1030";
+const NAV_BG     = "#ffffff";
+const NAV_BORDER = "rgba(0,0,0,0.07)";
+const ACCENT     = "#9B1030";
 const ACCENT_DARK = "#720B23";
-const DROP_BG = "#0f1e35";
+const DROP_BG    = "#ffffff";
+const NAV_TEXT   = "#1B3A76";
+const NAV_TEXT_MUTED = "rgba(27,58,118,0.55)";
 
 /* ── Dropdown animation styles injected once ── */
 const DROPDOWN_CSS = `
@@ -60,7 +62,7 @@ const DROPDOWN_CSS = `
 }
 .nav-dropdown { animation: dropIn 0.18s ease forwards; }
 .nav-drop-item { transition: background 0.15s, padding-left 0.15s, color 0.15s; }
-.nav-drop-item:hover { background: rgba(155,16,48,0.12) !important; padding-left: 22px !important; color: #fff !important; }
+.nav-drop-item:hover { background: rgba(155,16,48,0.07) !important; padding-left: 22px !important; color: #9B1030 !important; }
 `;
 
 function DropdownMenu({ items }: { items: { label: string; href: string }[] }) {
@@ -74,8 +76,8 @@ function DropdownMenu({ items }: { items: { label: string; href: string }[] }) {
         minWidth: "220px",
         backgroundColor: DROP_BG,
         borderRadius: "8px",
-        boxShadow: "0 20px 60px rgba(0,0,0,0.45), 0 4px 16px rgba(0,0,0,0.3)",
-        border: "1px solid rgba(255,255,255,0.08)",
+        boxShadow: "0 20px 60px rgba(0,0,0,0.12), 0 4px 16px rgba(0,0,0,0.08)",
+        border: "1px solid rgba(0,0,0,0.08)",
         overflow: "hidden",
         /* Extend hit area upward so mouse moving from button→dropdown doesn't miss */
         paddingTop: "0px",
@@ -92,7 +94,7 @@ function DropdownMenu({ items }: { items: { label: string; href: string }[] }) {
         borderLeft: "6px solid transparent",
         borderRight: "6px solid transparent",
         borderBottom: `6px solid ${DROP_BG}`,
-        filter: "drop-shadow(0 -2px 2px rgba(0,0,0,0.2))",
+        filter: "drop-shadow(0 -2px 2px rgba(0,0,0,0.06))",
       }} />
 
       {/* Accent top bar */}
@@ -113,9 +115,9 @@ function DropdownMenu({ items }: { items: { label: string; href: string }[] }) {
               fontSize: "12px",
               fontWeight: 600,
               letterSpacing: "0.03em",
-              color: "rgba(255,255,255,0.75)",
+              color: "#374151",
               textDecoration: "none",
-              borderBottom: "1px solid rgba(255,255,255,0.05)",
+              borderBottom: "1px solid rgba(0,0,0,0.05)",
             }}
           >
             <span>{item.label}</span>
@@ -159,8 +161,8 @@ function MobileLangPanel({
   };
 
   return (
-    <div style={{ paddingTop: 14, borderTop: "1px solid rgba(255,255,255,0.06)", marginTop: 4 }}>
-      <div style={{ fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,0.3)", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 12 }}>
+    <div style={{ paddingTop: 14, borderTop: `1px solid ${NAV_BORDER}`, marginTop: 4 }}>
+      <div style={{ fontSize: 10, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 12 }}>
         Select Language
       </div>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
@@ -173,16 +175,16 @@ function MobileLangPanel({
               style={{
                 display: "flex", alignItems: "center", gap: 7,
                 padding: "9px 14px", borderRadius: 8,
-                background: active ? "rgba(32,112,184,0.25)" : "rgba(255,255,255,0.07)",
-                border: `1px solid ${active ? "rgba(32,112,184,0.6)" : "rgba(255,255,255,0.12)"}`,
-                color: active ? "#93c5fd" : "rgba(255,255,255,0.85)",
+                background: active ? "rgba(27,58,118,0.08)" : "#f8fafc",
+                border: `1px solid ${active ? "rgba(27,58,118,0.4)" : NAV_BORDER}`,
+                color: active ? NAV_TEXT : "#475569",
                 fontSize: 13, fontWeight: active ? 700 : 500,
                 cursor: "pointer", transition: "all 0.15s",
               }}
             >
               <span style={{ fontSize: 18, lineHeight: 1 }}>{l.flag}</span>
               <span>{l.nativeLabel}</span>
-              {active && <Check size={12} style={{ color: "#93c5fd", marginLeft: 2 }} />}
+              {active && <Check size={12} style={{ color: NAV_TEXT, marginLeft: 2 }} />}
             </button>
           );
         })}
@@ -261,8 +263,8 @@ export default function Navbar({ items, logo }: { items?: NavItemData[]; logo?: 
       {/* Main Navbar */}
       <header
         ref={navRef}
-        className="sticky top-0 z-50 shadow-lg"
-        style={{ backgroundColor: NAV_BG, borderBottom: `1px solid ${NAV_BORDER}`, overflow: "visible" }}
+        className="sticky top-0 z-50"
+        style={{ backgroundColor: NAV_BG, borderBottom: `1px solid ${NAV_BORDER}`, overflow: "visible", boxShadow: "0 1px 0 rgba(0,0,0,0.06), 0 4px 24px rgba(0,0,0,0.05)" }}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between" style={{ height: "72px" }}>
@@ -291,8 +293,8 @@ export default function Navbar({ items, logo }: { items?: NavItemData[]; logo?: 
                         fontSize: "11px",
                         fontWeight: 700,
                         letterSpacing: "0.07em",
-                        color: openDropdown === item.label ? ACCENT : "rgba(255,255,255,0.85)",
-                        background: openDropdown === item.label ? "rgba(155,16,48,0.1)" : "none",
+                        color: openDropdown === item.label ? ACCENT : NAV_TEXT,
+                        background: openDropdown === item.label ? "rgba(155,16,48,0.07)" : "none",
                         borderRadius: "4px",
                         border: "none",
                         cursor: "pointer",
@@ -306,7 +308,7 @@ export default function Navbar({ items, logo }: { items?: NavItemData[]; logo?: 
                         style={{
                           transform: openDropdown === item.label ? "rotate(180deg)" : "none",
                           transition: "transform 0.2s",
-                          color: openDropdown === item.label ? ACCENT : "rgba(255,255,255,0.5)",
+                          color: openDropdown === item.label ? ACCENT : NAV_TEXT_MUTED,
                         }}
                       />
                     </button>
@@ -340,7 +342,7 @@ export default function Navbar({ items, logo }: { items?: NavItemData[]; logo?: 
                       fontSize: "11px",
                       fontWeight: 700,
                       letterSpacing: "0.07em",
-                      color: "rgba(255,255,255,0.85)",
+                      color: NAV_TEXT,
                       textDecoration: "none",
                       whiteSpace: "nowrap",
                       borderRadius: "4px",
@@ -348,10 +350,10 @@ export default function Navbar({ items, logo }: { items?: NavItemData[]; logo?: 
                     }}
                     onMouseEnter={(e) => {
                       e.currentTarget.style.color = ACCENT;
-                      e.currentTarget.style.background = "rgba(155,16,48,0.1)";
+                      e.currentTarget.style.background = "rgba(155,16,48,0.07)";
                     }}
                     onMouseLeave={(e) => {
-                      e.currentTarget.style.color = "rgba(255,255,255,0.85)";
+                      e.currentTarget.style.color = NAV_TEXT;
                       e.currentTarget.style.background = "none";
                     }}
                   >
@@ -374,9 +376,9 @@ export default function Navbar({ items, logo }: { items?: NavItemData[]; logo?: 
                     target="_blank"
                     rel="noopener noreferrer"
                     aria-label={label}
-                    style={{ color: "rgba(255,255,255,0.4)", transition: "color 0.2s" }}
-                    onMouseEnter={(e) => (e.currentTarget.style.color = "#fff")}
-                    onMouseLeave={(e) => (e.currentTarget.style.color = "rgba(255,255,255,0.4)")}
+                    style={{ color: NAV_TEXT_MUTED, transition: "color 0.2s" }}
+                    onMouseEnter={(e) => (e.currentTarget.style.color = ACCENT)}
+                    onMouseLeave={(e) => (e.currentTarget.style.color = NAV_TEXT_MUTED)}
                   >
                     <Icon size={15} />
                   </a>
@@ -393,20 +395,22 @@ export default function Navbar({ items, logo }: { items?: NavItemData[]; logo?: 
                   fontSize: "11px",
                   fontWeight: 700,
                   letterSpacing: "0.04em",
-                  color: "rgba(255,255,255,0.7)",
+                  color: NAV_TEXT,
                   textDecoration: "none",
                   whiteSpace: "nowrap",
                   borderRadius: "4px",
-                  border: "1px solid rgba(255,255,255,0.15)",
+                  border: `1px solid ${NAV_BORDER}`,
                   transition: "all 0.2s",
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.color = "#fff";
-                  e.currentTarget.style.borderColor = "rgba(255,255,255,0.4)";
+                  e.currentTarget.style.color = ACCENT;
+                  e.currentTarget.style.borderColor = ACCENT;
+                  e.currentTarget.style.background = "rgba(155,16,48,0.04)";
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.color = "rgba(255,255,255,0.7)";
-                  e.currentTarget.style.borderColor = "rgba(255,255,255,0.15)";
+                  e.currentTarget.style.color = NAV_TEXT;
+                  e.currentTarget.style.borderColor = NAV_BORDER;
+                  e.currentTarget.style.background = "none";
                 }}
               >
                 Book Dr. Wesley
@@ -474,9 +478,9 @@ export default function Navbar({ items, logo }: { items?: NavItemData[]; logo?: 
                   alignItems: "center",
                   justifyContent: "center",
                   padding: "10px 12px",
-                  color: "#fff",
-                  background: mobileOpen ? "rgba(255,255,255,0.08)" : "none",
-                  border: "1px solid rgba(255,255,255,0.1)",
+                  color: NAV_TEXT,
+                  background: mobileOpen ? "rgba(27,58,118,0.07)" : "none",
+                  border: `1px solid ${NAV_BORDER}`,
                   borderRadius: "6px",
                   cursor: "pointer",
                   transition: "background 0.2s",
@@ -495,8 +499,8 @@ export default function Navbar({ items, logo }: { items?: NavItemData[]; logo?: 
             className="lg:hidden"
             style={{
               backgroundColor: DROP_BG,
-              borderTop: `1px solid rgba(255,255,255,0.06)`,
-              boxShadow: "0 20px 40px rgba(0,0,0,0.4)",
+              borderTop: `1px solid ${NAV_BORDER}`,
+              boxShadow: "0 20px 40px rgba(0,0,0,0.08)",
             }}
           >
             {/* Accent stripe */}
@@ -505,7 +509,7 @@ export default function Navbar({ items, logo }: { items?: NavItemData[]; logo?: 
             <div style={{ padding: "8px 16px 16px" }}>
               {displayItems.map((item) =>
                 item.children && item.children.length > 0 ? (
-                  <div key={item.label} style={{ borderBottom: `1px solid rgba(255,255,255,0.05)` }}>
+                  <div key={item.label} style={{ borderBottom: `1px solid ${NAV_BORDER}` }}>
                     <button
                       style={{
                         display: "flex",
@@ -516,7 +520,7 @@ export default function Navbar({ items, logo }: { items?: NavItemData[]; logo?: 
                         fontSize: "11px",
                         fontWeight: 700,
                         letterSpacing: "0.07em",
-                        color: mobileExpanded === item.label ? ACCENT : "rgba(255,255,255,0.85)",
+                        color: mobileExpanded === item.label ? ACCENT : NAV_TEXT,
                         background: "none",
                         border: "none",
                         cursor: "pointer",
@@ -529,7 +533,7 @@ export default function Navbar({ items, logo }: { items?: NavItemData[]; logo?: 
                         style={{
                           transform: mobileExpanded === item.label ? "rotate(180deg)" : "none",
                           transition: "transform 0.2s",
-                          color: mobileExpanded === item.label ? ACCENT : "rgba(255,255,255,0.4)",
+                          color: mobileExpanded === item.label ? ACCENT : NAV_TEXT_MUTED,
                         }}
                       />
                     </button>
@@ -554,17 +558,17 @@ export default function Navbar({ items, logo }: { items?: NavItemData[]; logo?: 
                               padding: "9px 8px",
                               fontSize: "13px",
                               fontWeight: 500,
-                              color: "rgba(255,255,255,0.65)",
+                              color: "#475569",
                               textDecoration: "none",
                               borderRadius: "4px",
                               transition: "color 0.15s, background 0.15s",
                             }}
                             onMouseEnter={(e) => {
-                              e.currentTarget.style.color = "#fff";
-                              e.currentTarget.style.background = "rgba(255,255,255,0.05)";
+                              e.currentTarget.style.color = ACCENT;
+                              e.currentTarget.style.background = "rgba(155,16,48,0.05)";
                             }}
                             onMouseLeave={(e) => {
-                              e.currentTarget.style.color = "rgba(255,255,255,0.65)";
+                              e.currentTarget.style.color = "#475569";
                               e.currentTarget.style.background = "none";
                             }}
                             onClick={() => setMobileOpen(false)}
@@ -586,9 +590,9 @@ export default function Navbar({ items, logo }: { items?: NavItemData[]; logo?: 
                       fontSize: "11px",
                       fontWeight: 700,
                       letterSpacing: "0.07em",
-                      color: "rgba(255,255,255,0.85)",
+                      color: NAV_TEXT,
                       textDecoration: "none",
-                      borderBottom: `1px solid rgba(255,255,255,0.05)`,
+                      borderBottom: `1px solid ${NAV_BORDER}`,
                     }}
                     onClick={() => setMobileOpen(false)}
                   >
@@ -608,16 +612,16 @@ export default function Navbar({ items, logo }: { items?: NavItemData[]; logo?: 
                     display: "block",
                     textAlign: "center",
                     padding: "12px",
-                    border: "1px solid rgba(255,255,255,0.2)",
-                    color: "#fff",
+                    border: `1px solid ${NAV_BORDER}`,
+                    color: NAV_TEXT,
                     fontWeight: 600,
                     fontSize: "13px",
                     textDecoration: "none",
                     borderRadius: "6px",
-                    transition: "background 0.2s",
+                    transition: "all 0.2s",
                   }}
-                  onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.07)")}
-                  onMouseLeave={(e) => (e.currentTarget.style.background = "none")}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(27,58,118,0.05)"; e.currentTarget.style.borderColor = NAV_TEXT; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = "none"; e.currentTarget.style.borderColor = NAV_BORDER; }}
                   onClick={() => setMobileOpen(false)}
                 >
                   Book Dr. Wesley

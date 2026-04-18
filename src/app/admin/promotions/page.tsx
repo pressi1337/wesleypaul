@@ -4,10 +4,12 @@ import { useEffect, useState, useCallback } from "react";
 import {
   Save, Check, AlertCircle, Layout, Megaphone,
   Image as ImageIcon, Film, FolderOpen, X, Globe, Languages, Loader,
+  PanelRight, CalendarDays,
 } from "lucide-react";
 import MediaPickerModal from "@/components/MediaPickerModal";
 import RichTextEditor from "@/components/RichTextEditor";
 import type { PopupLangContent } from "@/app/api/popup/route";
+import type { EventPromoTabConfig } from "@/app/api/event-promo-tab/route";
 
 // ── Styles ─────────────────────────────────────────────────────────────────────
 const inp = {
@@ -115,6 +117,22 @@ export default function PromotionsPage() {
   // Per-language content overrides
   const [translations, setTranslations] = useState<Record<string, PopupLangContent>>({});
 
+  // Event Promo Tab config
+  const [tab, setTab] = useState<EventPromoTabConfig>({
+    enabled:      false,
+    tab_label:    "Events",
+    title:        "",
+    subtitle:     "",
+    event_date:   "",
+    image_url:    "",
+    cta_label:    "View Details",
+    cta_href:     "",
+    translations: {},
+  });
+  const [tabImagePicker,   setTabImagePicker]   = useState(false);
+  const [tabActiveLang,    setTabActiveLang]     = useState("en");
+  const [tabTranslating,   setTabTranslating]    = useState(false);
+
   const showToast = (msg: string, ok = true) => {
     setToast({ msg, ok });
     setTimeout(() => setToast(null), 3200);
@@ -128,6 +146,15 @@ export default function PromotionsPage() {
       ]);
 
       const settings: S = sr.settings ?? {};
+
+      // Load event promo tab config
+      if (settings.event_promo_tab) {
+        try {
+          const t = JSON.parse(settings.event_promo_tab) as Partial<EventPromoTabConfig>;
+          setTab(prev => ({ ...prev, ...t, translations: (t.translations ?? {}) }));
+        } catch { /* ignore */ }
+      }
+
       if (settings.promo_popup) {
         const p = JSON.parse(settings.promo_popup) as Record<string, unknown>;
         settings.promo_popup_enabled      = p.enabled ? "1" : "0";
@@ -229,7 +256,12 @@ export default function PromotionsPage() {
     const r = await fetch("/api/admin/settings", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ settings: { promo_popup: JSON.stringify(popupConfig) } }),
+      body: JSON.stringify({
+        settings: {
+          promo_popup:      JSON.stringify(popupConfig),
+          event_promo_tab:  JSON.stringify(tab),
+        },
+      }),
     });
     setSaving(false);
     showToast(r.ok ? "Promotion saved successfully" : "Save failed", r.ok);
@@ -537,6 +569,197 @@ export default function PromotionsPage() {
           </div>
         </div>
       </div>
+
+      {/* ── Event Promo Tab Card ─────────────────────────────────────────── */}
+      {(() => {
+        const tabLangTabs = [
+          { code: "en", label: "English", nativeLabel: "English", flag: "🇺🇸" },
+          ...langs,
+        ];
+        const isTabEn = tabActiveLang === "en";
+        const curTabLang = tabLangTabs.find(l => l.code === tabActiveLang)!;
+        const getTabLang = (code: string) => (tab.translations?.[code] ?? {}) as { title?: string; subtitle?: string; cta_label?: string; tab_label?: string };
+        const setTabLangField = (code: string, field: string, value: string) =>
+          setTab(p => ({ ...p, translations: { ...(p.translations ?? {}), [code]: { ...(p.translations?.[code] ?? {}), [field]: value } } }));
+
+        const autoTranslateTab = async () => {
+          if (tabTranslating) return;
+          setTabTranslating(true);
+          const translate = async (text: string) => {
+            if (!text) return "";
+            const r = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=en|${tabActiveLang}`);
+            const d = await r.json() as { responseData?: { translatedText?: string } };
+            return d.responseData?.translatedText || text;
+          };
+          try {
+            const [tTitle, tSub, tCta, tTab] = await Promise.all([
+              translate(tab.title),
+              translate(tab.subtitle),
+              translate(tab.cta_label),
+              translate(tab.tab_label || "Events"),
+            ]);
+            setTab(p => ({ ...p, translations: { ...(p.translations ?? {}), [tabActiveLang]: { title: tTitle || undefined, subtitle: tSub || undefined, cta_label: tCta || undefined, tab_label: tTab || undefined } } }));
+            showToast(`Translated to ${curTabLang?.nativeLabel}`);
+          } catch { showToast("Translation failed", false); }
+          setTabTranslating(false);
+        };
+
+        return (
+          <div style={card}>
+            <div style={cardHead}>
+              <PanelRight size={16} style={{ color: "#0891b2" }} />
+              <span style={{ fontWeight: 700, fontSize: 14, color: "#0f172a" }}>Event Promo Tab</span>
+              <span style={{ fontSize: 12, color: "#64748b", marginLeft: 4 }}>— sticky right-side widget</span>
+              <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{ fontSize: 12, color: tab.enabled ? "#16a34a" : "#94a3b8", fontWeight: 600 }}>
+                  {tab.enabled ? "Enabled" : "Disabled"}
+                </span>
+                <Toggle checked={tab.enabled} onChange={v => setTab(p => ({ ...p, enabled: v }))} />
+              </div>
+            </div>
+
+            {/* Language tabs */}
+            <div style={{ display: "flex", alignItems: "center", gap: 0, borderBottom: "1px solid #f1f5f9", padding: "0 20px", overflowX: "auto" }}>
+              <Globe size={13} style={{ color: "#94a3b8", marginRight: 8, flexShrink: 0 }} />
+              {tabLangTabs.map(l => (
+                <button key={l.code} onClick={() => setTabActiveLang(l.code)} style={{
+                  display: "flex", alignItems: "center", gap: 6,
+                  padding: "10px 14px", border: "none", background: "none",
+                  cursor: "pointer", fontSize: 13,
+                  fontWeight: tabActiveLang === l.code ? 700 : 500,
+                  color: tabActiveLang === l.code ? "#0891b2" : "#64748b",
+                  borderBottom: `2px solid ${tabActiveLang === l.code ? "#0891b2" : "transparent"}`,
+                  marginBottom: -1, whiteSpace: "nowrap", flexShrink: 0, transition: "color 0.15s",
+                }}>
+                  <span style={{ fontSize: 16 }}>{l.flag}</span>
+                  {l.nativeLabel}
+                  {l.code !== "en" && (tab.translations?.[l.code]?.title || tab.translations?.[l.code]?.tab_label) && (
+                    <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#16a34a", flexShrink: 0 }} />
+                  )}
+                </button>
+              ))}
+            </div>
+
+            <div style={{ padding: "20px", display: "flex", flexDirection: "column", gap: 18 }}>
+
+              {/* Non-English info + auto-translate */}
+              {!isTabEn && (
+                <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+                  <div style={{ flex: 1, background: "#ecfeff", border: "1px solid #a5f3fc", borderRadius: 8, padding: "10px 14px", fontSize: 13, color: "#0e7490", display: "flex", gap: 8, alignItems: "center" }}>
+                    <span style={{ fontSize: 18 }}>{curTabLang?.flag}</span>
+                    <span>Override content for <strong>{curTabLang?.nativeLabel}</strong>. Leave blank to fall back to English.</span>
+                  </div>
+                  <button onClick={autoTranslateTab} disabled={tabTranslating} style={{
+                    display: "flex", alignItems: "center", gap: 7, padding: "9px 16px", borderRadius: 8, border: "none",
+                    background: tabTranslating ? "#e2e8f0" : "linear-gradient(135deg,#0891b2,#0e7490)",
+                    color: tabTranslating ? "#94a3b8" : "#fff", cursor: tabTranslating ? "default" : "pointer",
+                    fontSize: 13, fontWeight: 700, whiteSpace: "nowrap",
+                    boxShadow: tabTranslating ? "none" : "0 2px 10px rgba(8,145,178,0.3)",
+                  }}>
+                    {tabTranslating
+                      ? <><Loader size={13} style={{ animation: "spin 0.8s linear infinite" }} /> Translating…</>
+                      : <><Languages size={13} /> Auto-Translate from English</>}
+                  </button>
+                </div>
+              )}
+
+              {/* English: source + global settings */}
+              {isTabEn && (
+                <>
+                  {/* Tab label */}
+                  <div style={{ maxWidth: 260 }}>
+                    <label style={lbl}>Tab Strip Label</label>
+                    <input style={inp} value={tab.tab_label || ""} onChange={e => setTab(p => ({ ...p, tab_label: e.target.value }))} placeholder="Events" />
+                    <p style={{ marginTop: 4, fontSize: 11, color: "#94a3b8" }}>The vertical text shown on the right-side tab strip.</p>
+                  </div>
+
+                  {/* Content fields */}
+                  <>
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+                        <div>
+                          <label style={lbl}>Event Title</label>
+                          <input style={inp} value={tab.title} onChange={e => setTab(p => ({ ...p, title: e.target.value }))} placeholder="Global Gospel Festival 2026" />
+                        </div>
+                        <div>
+                          <label style={lbl}>Subtitle / Tagline</label>
+                          <input style={inp} value={tab.subtitle} onChange={e => setTab(p => ({ ...p, subtitle: e.target.value }))} placeholder="A night of worship and miracles" />
+                        </div>
+                      </div>
+
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+                        <div>
+                          <label style={lbl}>Event Date &amp; Time</label>
+                          <input style={inp} type="datetime-local" value={tab.event_date ? tab.event_date.slice(0, 16) : ""} onChange={e => setTab(p => ({ ...p, event_date: e.target.value }))} />
+                        </div>
+                        <div>
+                          <label style={lbl}>Link URL</label>
+                          <input style={inp} value={tab.cta_href} onChange={e => setTab(p => ({ ...p, cta_href: e.target.value }))} placeholder="/events or /blog/my-event-slug" />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label style={lbl}>Event Image</label>
+                        <div style={{ display: "flex", gap: 6, marginBottom: tab.image_url ? 10 : 0 }}>
+                          <input style={{ ...inp, flex: 1 }} value={tab.image_url} onChange={e => setTab(p => ({ ...p, image_url: e.target.value }))} placeholder="Paste URL or pick from Gallery" />
+                          <button type="button" onClick={() => setTabImagePicker(true)} style={{ display: "flex", alignItems: "center", gap: 5, padding: "8px 12px", borderRadius: 7, border: "1px solid #e2e8f0", background: "#f8fafc", color: "#475569", cursor: "pointer", fontSize: 12, fontWeight: 600, whiteSpace: "nowrap", flexShrink: 0 }}>
+                            <FolderOpen size={13} /> Gallery
+                          </button>
+                          {tab.image_url && (
+                            <button type="button" onClick={() => setTab(p => ({ ...p, image_url: "" }))} style={{ padding: "8px 9px", borderRadius: 7, border: "1px solid #fca5a5", background: "#fff1f2", color: "#ef4444", cursor: "pointer", flexShrink: 0 }}><X size={13} /></button>
+                          )}
+                        </div>
+                        {tab.image_url && (
+                          /* eslint-disable-next-line @next/next/no-img-element */
+                          <img src={tab.image_url} alt="preview" style={{ width: "100%", maxHeight: 160, objectFit: "cover", borderRadius: 8, display: "block", border: "1px solid #e8ecf0" }} onError={e => { (e.currentTarget as HTMLImageElement).style.display = "none"; }} />
+                        )}
+                        {tabImagePicker && (
+                          <MediaPickerModal accept="image" onPick={url => { setTab(p => ({ ...p, image_url: url })); setTabImagePicker(false); }} onClose={() => setTabImagePicker(false)} />
+                        )}
+                      </div>
+
+                      <div style={{ maxWidth: 260 }}>
+                        <label style={lbl}>Button Label</label>
+                        <input style={inp} value={tab.cta_label} onChange={e => setTab(p => ({ ...p, cta_label: e.target.value }))} placeholder="View Details" />
+                      </div>
+                  </>
+                </>
+              )}
+
+              {/* Non-English: per-language overrides */}
+              {!isTabEn && (
+                <>
+                  <div style={{ maxWidth: 260 }}>
+                    <label style={lbl}>Tab Strip Label — {curTabLang?.nativeLabel}</label>
+                    <input style={inp} value={getTabLang(tabActiveLang).tab_label || ""} onChange={e => setTabLangField(tabActiveLang, "tab_label", e.target.value)} placeholder={`Leave blank to use: "${tab.tab_label || "Events"}"`} />
+                  </div>
+                  <div>
+                    <label style={lbl}>Event Title — {curTabLang?.nativeLabel}</label>
+                    <input style={inp} value={getTabLang(tabActiveLang).title || ""} onChange={e => setTabLangField(tabActiveLang, "title", e.target.value)} placeholder={`Leave blank to use: "${tab.title}"`} />
+                  </div>
+                  <div>
+                    <label style={lbl}>Subtitle — {curTabLang?.nativeLabel}</label>
+                    <input style={inp} value={getTabLang(tabActiveLang).subtitle || ""} onChange={e => setTabLangField(tabActiveLang, "subtitle", e.target.value)} placeholder={`Leave blank to use: "${tab.subtitle}"`} />
+                  </div>
+                  <div style={{ maxWidth: 260 }}>
+                    <label style={lbl}>Button Label — {curTabLang?.nativeLabel}</label>
+                    <input style={inp} value={getTabLang(tabActiveLang).cta_label || ""} onChange={e => setTabLangField(tabActiveLang, "cta_label", e.target.value)} placeholder={`Leave blank to use: "${tab.cta_label || "View Details"}"`} />
+                  </div>
+                </>
+              )}
+
+              {/* Info box */}
+              <div style={{ background: "#ecfeff", borderRadius: 8, padding: "10px 14px", fontSize: 12, color: "#0e7490", border: "1px solid #a5f3fc", display: "flex", alignItems: "flex-start", gap: 8 }}>
+                <CalendarDays size={14} style={{ flexShrink: 0, marginTop: 1 }} />
+                <div>
+                  <strong>How it works:</strong> A sticky tab appears on the right side of every public page, expanded by default.
+                  Clicking × collapses it to the tab strip — it never fully disappears.
+                  Each language can override the tab label, title, subtitle, and button text.
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Toast */}
       {toast && (

@@ -3,6 +3,7 @@
 import { usePathname } from "next/navigation";
 import LangPreferenceModal from "./LangPreferenceModal";
 import PromoPopup from "./PromoPopup";
+import EventPromoTab from "./EventPromoTab";
 
 export default function SiteShell({
   children,
@@ -25,6 +26,7 @@ export default function SiteShell({
       {footer}
       <LangPreferenceModal />
       <PromoPopup />
+      <EventPromoTab />
     </>
   );
 }
