@@ -152,10 +152,8 @@ function PageHeaderSection({ content }: { content: Record<string, unknown> }) {
   const eyebrow = getString(content, "eyebrow");
   const heading = getString(content, "heading");
   const subheading = getString(content, "subheading");
-  // bg_image takes priority over legacy `image` field
   const bgImg = getString(content, "bg_image") || getString(content, "image");
   const overlayOpacity = getBgOverlayOpacity(content);
-  // read zoom from either bg_zoom (BackgroundPanel) or image_zoom (PageImageControlPanel)
   const bgZoom = Number(content.bg_zoom ?? content.image_zoom ?? 100);
   const bgPos = getString(content, "bg_position") || getString(content, "image_position") || "center";
   const bgSize = bgZoom > 100 ? `${bgZoom}%` : "cover";
@@ -245,7 +243,7 @@ function CardsGridSection({ content }: { content: Record<string, unknown> }) {
               </div>
               <div>
                 {item.title && <h3 style={{ fontSize: 15, fontWeight: 700, color: "#2070B8", marginBottom: 8 }}>{item.title}</h3>}
-                {item.description && <p style={{ color: "#6c757d", fontSize: 14, lineHeight: 1.75 }}>{item.description}</p>}
+                {item.description && <div style={{ color: "#6c757d", fontSize: 14, lineHeight: 1.75 }} dangerouslySetInnerHTML={{ __html: item.description }} />}
               </div>
             </div>
           ))}
@@ -305,36 +303,21 @@ function TwoColSection({ content }: { content: Record<string, unknown> }) {
   const body = getString(content, "body");
   const image = getString(content, "image");
   const imageSide = getString(content, "image_side") || "left";
-  const imageFit = getString(content, "image_fit") || "cover"; // "cover" | "contain"
+  const imageFit = getString(content, "image_fit") || "cover";
   const ctaLabel = getString(content, "cta_label");
   const ctaHref = getString(content, "cta_href");
   const ctaSecondaryLabel = getString(content, "cta_secondary_label");
   const ctaSecondaryHref = getString(content, "cta_secondary_href");
-
   const imageZoom = Number(content.image_zoom ?? 100);
   const imagePosition = getString(content, "image_position") || "center";
 
   const imgCol = image ? (
     imageFit === "contain" ? (
-      /* Contain mode — full image visible, no crop (ideal for QR codes, logos) */
       <div style={{ display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={image}
-          alt={heading || "image"}
-          style={{
-            maxWidth: "min(100%, 380px)",
-            height: "auto",
-            display: "block",
-            borderRadius: 8,
-            boxShadow: "0 8px 30px rgba(0,0,0,0.1)",
-            transform: imageZoom > 100 ? `scale(${imageZoom / 100})` : undefined,
-            transformOrigin: "center",
-          }}
-        />
+        <img src={image} alt={heading || "image"} style={{ maxWidth: "min(100%, 380px)", height: "auto", display: "block", borderRadius: 8, boxShadow: "0 8px 30px rgba(0,0,0,0.1)", transform: imageZoom > 100 ? `scale(${imageZoom / 100})` : undefined, transformOrigin: "center" }} />
       </div>
     ) : (
-      /* Cover mode — fills the frame (ideal for photos) */
       <div style={{ position: "relative", borderRadius: 8, overflow: "hidden", minHeight: 400, backgroundColor: "#1a2a3a", boxShadow: "0 8px 30px rgba(0,0,0,0.15)" }}>
         <Image src={image} alt={heading || "image"} fill style={{ objectFit: "cover", objectPosition: imagePosition, transform: imageZoom > 100 ? `scale(${imageZoom / 100})` : undefined, transformOrigin: imagePosition }} />
       </div>
@@ -399,9 +382,11 @@ function CtaSection({ content }: { content: Record<string, unknown> }) {
   const primaryLink = getString(content, "primary_cta_link");
   const secondaryText = getString(content, "secondary_cta_text");
   const secondaryLink = getString(content, "secondary_cta_link");
+  const bgColor = getString(content, "bg_color") || "#0d1b2e";
   return (
-    <section style={{ background: "#0d1b2e", padding: "80px 24px", textAlign: "center" }}>
-      <div style={{ maxWidth: 700, margin: "0 auto" }}>
+    <section style={{ backgroundColor: bgColor, padding: "80px 24px", textAlign: "center", ...getBgStyle(content) }}>
+      <BgImageOverlay content={content} />
+      <div style={{ maxWidth: 700, margin: "0 auto", position: "relative", zIndex: 1 }}>
         {heading && <h2 style={{ fontSize: "clamp(24px, 3.5vw, 42px)", fontWeight: 800, color: "#fff", margin: "0 0 16px" }}>{heading}</h2>}
         {body && <p style={{ fontSize: 18, color: "rgba(255,255,255,0.65)", margin: "0 0 32px", lineHeight: 1.7 }}>{body}</p>}
         <div style={{ display: "flex", gap: 14, justifyContent: "center", flexWrap: "wrap" }}>
@@ -527,8 +512,10 @@ async function LatestPostsSection({ content }: { content: Record<string, unknown
 async function CustomFormSection({ content }: { content: Record<string, unknown> }) {
   const heading = getString(content, "heading") || "Get in Touch";
   const description = getString(content, "description");
-  const formId = parseInt(getString(content, "form_id") || "0", 10);
+  // form_id may be stored as a number or string in content_json
+  const formId = Number(content["form_id"] ?? 0);
   if (!formId) return null;
+  const submitLabel = getString(content, "submit_label") || "Submit";
   interface FormRow { id: number; name: string; fields_json: unknown; success_message: string; }
   let form: FormRow | null = null;
   try {
@@ -536,18 +523,18 @@ async function CustomFormSection({ content }: { content: Record<string, unknown>
     form = (rows as FormRow[])[0] ?? null;
   } catch { /* DB not ready */ }
   if (!form) return null;
-  // mysql2 returns JSON columns already parsed; handle both array and string
   const fields: unknown[] = Array.isArray(form.fields_json)
     ? form.fields_json
     : (() => { try { return JSON.parse(form.fields_json as string) as unknown[]; } catch { return []; } })();
 
-  const layout = getString(content, "layout") || "left_form"; // "left_form" | "form_only"
+  const layout = getString(content, "layout") || "left_form";
   const formHeading = getString(content, "form_heading");
   const hasBg = !!getString(content, "bg_image");
   const bgColor = getString(content, "bg_color") || (hasBg ? "#0a1523" : "#f8f9fa");
+  const isDark = hasBg || (bgColor !== "#f8f9fa" && bgColor !== "#fff" && bgColor !== "#ffffff");
 
   const formCard = (
-    <div style={{ background: "#fff", borderRadius: 16, padding: "36px 32px", boxShadow: "0 8px 40px rgba(0,0,0,0.12)" }}>
+    <div style={{ background: "#fff", borderRadius: 16, padding: "36px 32px", boxShadow: "0 8px 40px rgba(0,0,0,0.18)" }}>
       {formHeading && layout === "left_form" && (
         <h3 style={{ fontSize: "clamp(16px, 2vw, 20px)", fontWeight: 700, color: "#0f172a", margin: "0 0 20px", paddingBottom: 14, borderBottom: "2px solid #f1f5f9" }}>
           {formHeading}
@@ -558,46 +545,40 @@ async function CustomFormSection({ content }: { content: Record<string, unknown>
           formId={form.id}
           fields={fields as Parameters<typeof CustomFormRenderer>[0]["fields"]}
           successMessage={form.success_message}
+          submitLabel={submitLabel}
         />
       </Suspense>
     </div>
   );
 
   return (
-    <section style={{ padding: "80px 24px", backgroundColor: bgColor, ...getBgStyle(content) }}>
+    <section id="contact" style={{ padding: "80px 24px", backgroundColor: bgColor, ...getBgStyle(content) }}>
       <BgImageOverlay content={content} />
       <div style={{ maxWidth: 1200, margin: "0 auto", position: "relative", zIndex: 1 }}>
         {layout === "form_only" ? (
-          /* ── Single-column centred layout ── */
-          <div style={{ maxWidth: 640, margin: "0 auto" }}>
+          <div style={{ maxWidth: 660, margin: "0 auto" }}>
             {heading && (
-              <>
-                <h2 style={{ fontSize: "clamp(22px, 3vw, 36px)", fontWeight: 800, color: hasBg ? "#fff" : "#0f172a", textAlign: "center", margin: "0 0 16px" }}>
-                  {heading}
-                </h2>
-                <div style={{ width: 56, height: 4, backgroundColor: "#C0185A", borderRadius: 2, margin: "0 auto 32px" }} />
-              </>
+              <div style={{ textAlign: "center", marginBottom: 36 }}>
+                <h2 style={{ fontSize: "clamp(26px,3.5vw,42px)", fontWeight: 800, color: isDark ? "#fff" : "#0f172a", margin: "0 0 14px", lineHeight: 1.15 }}>{heading}</h2>
+                <div style={{ width: 56, height: 4, backgroundColor: "#C0185A", borderRadius: 2, margin: "0 auto 18px" }} />
+                {description && (
+                  <div style={{ color: isDark ? "rgba(255,255,255,0.8)" : "#4a5568", fontSize: 15, lineHeight: 1.75, maxWidth: 540, margin: "0 auto" }}
+                    dangerouslySetInnerHTML={{ __html: description }} />
+                )}
+              </div>
             )}
             {formCard}
           </div>
         ) : (
-          /* ── Two-column layout: left content + right form ── */
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 400px), 1fr))", gap: "4rem", alignItems: "center" }}>
-            {/* Left */}
             <div>
-              <h2 style={{ fontSize: "clamp(26px, 3.5vw, 44px)", fontWeight: 800, color: hasBg ? "#fff" : "#0f172a", lineHeight: 1.2, margin: "0 0 20px" }}>
-                {heading}
-              </h2>
+              <h2 style={{ fontSize: "clamp(26px, 3.5vw, 44px)", fontWeight: 800, color: isDark ? "#fff" : "#0f172a", lineHeight: 1.2, margin: "0 0 20px" }}>{heading}</h2>
               <div style={{ width: 56, height: 4, backgroundColor: "#C0185A", borderRadius: 2, marginBottom: 24 }} />
               {description && (
-                <div
-                  className="custom-form-left-content"
-                  style={{ color: hasBg ? "rgba(255,255,255,0.85)" : "#4a5568", fontSize: 16, lineHeight: 1.8 }}
-                  dangerouslySetInnerHTML={{ __html: description }}
-                />
+                <div style={{ color: isDark ? "rgba(255,255,255,0.85)" : "#4a5568", fontSize: 16, lineHeight: 1.8 }}
+                  dangerouslySetInnerHTML={{ __html: description }} />
               )}
             </div>
-            {/* Right */}
             {formCard}
           </div>
         )}
@@ -653,9 +634,9 @@ function renderSection(section: Section) {
 }
 
 // ── Metadata ──────────────────────────────────────────────────────────────────
-export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
+export async function generateMetadata({ params }: { params: Promise<{ slug: string[] }> }) {
   const { slug } = await params;
-  const data = await getPageData(slug, "en");
+  const data = await getPageData(slug.join("/"), "en");
   if (!data) return {};
   const { page } = data;
   return {
@@ -670,13 +651,15 @@ export default async function SlugPage({
   params,
   searchParams,
 }: {
-  params: Promise<{ slug: string }>;
+  params: Promise<{ slug: string[] }>;
   searchParams: Promise<{ lang?: string; preview?: string }>;
 }) {
   const { slug } = await params;
   const { lang = "en" } = await searchParams;
 
-  const data = await getPageData(slug, lang);
+  // Join segments so both /about and /test/test resolve to the correct DB slug
+  const fullSlug = slug.join("/");
+  const data = await getPageData(fullSlug, lang);
   if (!data) notFound();
 
   const { sections } = data;

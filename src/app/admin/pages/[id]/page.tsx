@@ -214,6 +214,13 @@ function MediaPicker({ value, onChange }: { value: string; onChange: (v: string)
           style={{ padding: "0 10px", border: "1px solid #e2e8f0", borderRadius: 6, background: "#f8fafc", cursor: "pointer", fontSize: 11, color: "#64748b", whiteSpace: "nowrap" }}>
           Browse
         </button>
+        {value && (
+          <button type="button" onClick={() => onChange("")}
+            title="Remove image"
+            style={{ padding: "0 9px", border: "1px solid #fca5a5", borderRadius: 6, background: "#fff1f2", cursor: "pointer", color: "#ef4444", fontWeight: 700, fontSize: 14, lineHeight: 1, flexShrink: 0 }}>
+            ×
+          </button>
+        )}
       </div>
       {value && (
         // eslint-disable-next-line @next/next/no-img-element
@@ -326,72 +333,123 @@ function MediaPicker({ value, onChange }: { value: string; onChange: (v: string)
   );
 }
 
-// ── PageImageControlPanel — picker + zoom + focal point ──────────────────────
+// ── Focal point labels ────────────────────────────────────────────────────────
+const FOCAL_LABELS: Record<string, string> = {
+  "top left":     "↖ Top Left",   "top center":    "↑ Top",       "top right":    "Top Right ↗",
+  "center left":  "← Left",       "center":        "● Center",    "center right": "Right →",
+  "bottom left":  "↙ Bot Left",   "bottom center": "↓ Bottom",    "bottom right": "Bot Right ↘",
+};
+
+// ── PageImageControlPanel — picker + full-width live preview + zoom + focal ───
 function PageImageControlPanel({
   value, zoom = 100, position = "center",
-  onChange, onZoomChange, onPositionChange,
+  onChange, onZoomChange, onPositionChange, sizeHint,
 }: {
-  value: string; zoom?: number; position?: string;
+  value: string; zoom?: number; position?: string; sizeHint?: string;
   onChange: (v: string) => void;
   onZoomChange?: (v: number) => void;
   onPositionChange?: (v: string) => void;
 }) {
-  const lb: React.CSSProperties = { display: "block", fontSize: 10, fontWeight: 700, color: "#374151", marginBottom: 3, textTransform: "uppercase", letterSpacing: "0.04em" };
+  const lb: React.CSSProperties = { display: "block", fontSize: 10, fontWeight: 700, color: "#374151", marginBottom: 3, textTransform: "uppercase" as const, letterSpacing: "0.04em" };
+  const iconBtn: React.CSSProperties = { padding: "4px 8px", border: "1px solid #e2e8f0", borderRadius: 5, background: "#fff", cursor: "pointer", fontSize: 13, lineHeight: 1, color: "#475569", flexShrink: 0 };
+
   return (
-    <div style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 8, padding: "10px 10px 8px" }}>
+    <div style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 8, padding: "10px" }}>
       <MediaPicker value={value} onChange={onChange} />
+      {sizeHint && (
+        <div style={{ marginTop: 7, background: "#fefce8", border: "1px solid #fde68a", borderRadius: 6, padding: "6px 10px", fontSize: 11, color: "#92400e", lineHeight: 1.55 }}>
+          <strong>Recommended size:</strong> {sizeHint}
+        </div>
+      )}
 
       {value && (
-        <div style={{ marginTop: 10, display: "flex", gap: 10 }}>
-          {/* Live thumbnail */}
-          <div style={{ flexShrink: 0, width: 72, height: 72, borderRadius: 6, border: "1px solid #e2e8f0", overflow: "hidden", position: "relative" }}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={value} alt="" style={{
-              position: "absolute", inset: 0, width: "100%", height: "100%",
-              objectFit: "cover",
-              objectPosition: position,
-              transform: `scale(${zoom / 100})`,
-              transformOrigin: position,
-              transition: "transform 0.2s, object-position 0.2s",
-            }} onError={e => { (e.target as HTMLImageElement).style.display = "none"; }} />
+        <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 10 }}>
+
+          {/* ── Full-width live preview ── */}
+          <div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 5, display: "flex", alignItems: "center", gap: 4 }}>
+              <Eye size={10} /> Live Preview — as it appears on the page
+            </div>
+            <div style={{ width: "100%", aspectRatio: "4/3", position: "relative", overflow: "hidden", borderRadius: 7, border: "1px solid #e2e8f0", background: "#1a2a3a" }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={value} alt="" style={{
+                position: "absolute", inset: 0, width: "100%", height: "100%",
+                objectFit: "cover",
+                objectPosition: position,
+                transform: zoom > 100 ? `scale(${zoom / 100})` : "none",
+                transformOrigin: position,
+                transition: "transform 0.25s ease, object-position 0.25s ease",
+                display: "block",
+              }} onError={e => { (e.target as HTMLImageElement).style.display = "none"; }} />
+              {/* Position indicator dot */}
+              {onPositionChange && (
+                <div style={{ position: "absolute", inset: 0, pointerEvents: "none" }}>
+                  <div style={{
+                    position: "absolute",
+                    width: 10, height: 10, borderRadius: "50%",
+                    background: "#fff", border: "2px solid #C0185A",
+                    boxShadow: "0 0 0 2px rgba(192,24,90,0.35)",
+                    transform: "translate(-50%,-50%)",
+                    top: position.includes("top") ? "15%" : position.includes("bottom") ? "85%" : "50%",
+                    left: position.includes("left") ? "15%" : position.includes("right") ? "85%" : "50%",
+                  }} />
+                </div>
+              )}
+            </div>
           </div>
 
-          <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 8 }}>
-            {/* Zoom slider */}
-            {onZoomChange && (
-              <div>
-                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 2 }}>
-                  <label style={lb}>Zoom</label>
-                  <span style={{ fontSize: 10, color: "#94a3b8", fontWeight: 700 }}>{zoom}%</span>
-                </div>
+          {/* ── Zoom ── */}
+          {onZoomChange && (
+            <div>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
+                <label style={{ ...lb, marginBottom: 0, flex: 1 }}>Zoom</label>
+                <span style={{ fontSize: 11, color: "#2070B8", fontWeight: 700 }}>{zoom}%</span>
+                {zoom !== 100 && (
+                  <button type="button"
+                    onClick={() => { onZoomChange(100); onPositionChange?.("center"); }}
+                    style={{ fontSize: 9, padding: "2px 6px", border: "1px solid #e2e8f0", borderRadius: 3, background: "#fff", cursor: "pointer", color: "#64748b" }}>
+                    Reset
+                  </button>
+                )}
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <button type="button" style={iconBtn} onClick={() => onZoomChange(Math.max(100, zoom - 5))}>−</button>
                 <input type="range" min={100} max={200} step={5}
                   value={zoom} onChange={e => onZoomChange(Number(e.target.value))}
-                  style={{ width: "100%", accentColor: "#2070B8" }} />
+                  style={{ flex: 1, accentColor: "#2070B8", cursor: "pointer" }} />
+                <button type="button" style={iconBtn} onClick={() => onZoomChange(Math.min(200, zoom + 5))}>+</button>
               </div>
-            )}
+            </div>
+          )}
 
-            {/* Focal point grid */}
-            {onPositionChange && (
-              <div>
-                <label style={lb}>Focal Point</label>
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 3 }}>
-                  {FOCAL_POINTS.flat().map(fp => (
-                    <button key={fp} type="button"
-                      onClick={() => onPositionChange(fp)}
-                      title={fp}
-                      style={{
-                        padding: "5px 0", border: `2px solid ${position === fp ? "#2070B8" : "#e2e8f0"}`,
-                        borderRadius: 4, background: position === fp ? "#eff6ff" : "#fff",
-                        cursor: "pointer", fontSize: 9, color: position === fp ? "#2070B8" : "#94a3b8",
-                        fontWeight: position === fp ? 700 : 400, textTransform: "capitalize",
-                      }}>
-                      {fp.replace("center", "ctr").replace("bottom","btm").replace("top","top")}
-                    </button>
-                  ))}
-                </div>
+          {/* ── Focal point grid ── */}
+          {onPositionChange && (
+            <div>
+              <label style={lb}>Focal Point — click to reposition</label>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 3 }}>
+                {FOCAL_POINTS.flat().map(fp => (
+                  <button key={fp} type="button"
+                    onClick={() => onPositionChange(fp)}
+                    title={fp}
+                    style={{
+                      padding: "6px 2px",
+                      border: `2px solid ${position === fp ? "#2070B8" : "#e2e8f0"}`,
+                      borderRadius: 5,
+                      background: position === fp ? "#eff6ff" : "#fff",
+                      cursor: "pointer",
+                      fontSize: 9.5,
+                      color: position === fp ? "#2070B8" : "#94a3b8",
+                      fontWeight: position === fp ? 700 : 400,
+                      textAlign: "center" as const,
+                      transition: "all 0.1s",
+                    }}>
+                    {FOCAL_LABELS[fp] ?? fp}
+                  </button>
+                ))}
               </div>
-            )}
-          </div>
+            </div>
+          )}
+
         </div>
       )}
     </div>
@@ -486,13 +544,19 @@ function SectionPreview({ sec, translatedJson, previewDevice = "desktop" }: { se
     const body = getString(c, "body");
     const p1 = getString(c, "primary_cta_text") || "Get Started";
     const p2 = getString(c, "secondary_cta_text");
+    const bgStyle = bgWrapStyle(c);
+    const overlayOpacity = Number(c.bg_overlay ?? 50) / 100;
+    const bgColor = getString(c, "bg_color") || "#0d1b2e";
     return (
-      <div style={{ padding: "60px 32px", background: "#0d1b2e", textAlign: "center" }}>
-        <h2 style={{ fontSize: "clamp(22px,3vw,34px)", fontWeight: 800, color: "#fff", marginBottom: 14 }}>{heading}</h2>
-        {body && <p style={{ fontSize: 15, color: "rgba(255,255,255,0.65)", marginBottom: 28, maxWidth: 560, margin: "0 auto 28px", lineHeight: 1.7 }}>{body.slice(0, 160)}{body.length > 160 ? "…" : ""}</p>}
-        <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
-          <span style={{ padding: "11px 28px", background: "#C0185A", color: "#fff", borderRadius: 6, fontWeight: 700, fontSize: 13 }}>{p1}</span>
-          {p2 && <span style={{ padding: "11px 28px", border: "2px solid rgba(255,255,255,0.3)", color: "#fff", borderRadius: 6, fontWeight: 600, fontSize: 13 }}>{p2}</span>}
+      <div style={{ padding: "60px 32px", backgroundColor: bgColor, textAlign: "center", position: "relative", ...bgStyle }}>
+        {bgStyle && <BgOverlay opacity={overlayOpacity} />}
+        <div style={{ position: "relative", zIndex: 1 }}>
+          <h2 style={{ fontSize: "clamp(22px,3vw,34px)", fontWeight: 800, color: "#fff", marginBottom: 14 }}>{heading}</h2>
+          {body && <p style={{ fontSize: 15, color: "rgba(255,255,255,0.65)", marginBottom: 28, maxWidth: 560, margin: "0 auto 28px", lineHeight: 1.7 }}>{body.slice(0, 160)}{body.length > 160 ? "…" : ""}</p>}
+          <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
+            <span style={{ padding: "11px 28px", background: "#C0185A", color: "#fff", borderRadius: 6, fontWeight: 700, fontSize: 13 }}>{p1}</span>
+            {p2 && <span style={{ padding: "11px 28px", border: "2px solid rgba(255,255,255,0.3)", color: "#fff", borderRadius: 6, fontWeight: 600, fontSize: 13 }}>{p2}</span>}
+          </div>
         </div>
       </div>
     );
@@ -551,7 +615,12 @@ function SectionPreview({ sec, translatedJson, previewDevice = "desktop" }: { se
     const zoom = Number(c.bg_zoom ?? c.image_zoom ?? 100);
     const pos = getString(c, "bg_position") || getString(c, "image_position") || "center";
     const bgSize = zoom > 100 ? `${zoom}%` : "cover";
-    const bg = img ? `linear-gradient(rgba(13,27,46,0.82),rgba(13,27,46,0.87)), url(${img}) ${pos}/${bgSize}` : "linear-gradient(135deg, #0a1523 0%, #2070B8 100%)";
+    const fallbackColor = getString(c, "bg_color");
+    const bg = img
+      ? `linear-gradient(rgba(13,27,46,0.82),rgba(13,27,46,0.87)), url(${img}) ${pos}/${bgSize}`
+      : fallbackColor
+        ? `linear-gradient(135deg, ${fallbackColor}, ${fallbackColor})`
+        : "linear-gradient(135deg, #0a1523 0%, #2070B8 100%)";
     return (
       <div style={{ padding: "48px 32px", background: bg, textAlign: "center" }}>
         {eyebrow && <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.15em", textTransform: "uppercase", color: "#f5a623", marginBottom: 10 }}>{eyebrow}</p>}
@@ -579,24 +648,40 @@ function SectionPreview({ sec, translatedJson, previewDevice = "desktop" }: { se
     const body = getString(c, "body");
     const label = getString(c, "label");
     const cta = getString(c, "cta_label");
+    const ctaHref = getString(c, "cta_href");
     const imageFit = getString(c, "image_fit") || "cover";
+    const imageSide = getString(c, "image_side") || "left";
     const zoom2col = Number(c.image_zoom ?? 100);
-    const imgCol = img ? (
-      imageFit === "contain"
-        ? <div style={{ background: "#fff", overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <img src={img} alt="" style={{ maxWidth: "100%", height: "auto", display: "block", transform: zoom2col > 100 ? `scale(${zoom2col / 100})` : undefined, transformOrigin: "center" }} />
+    const imgPos = getString(c, "image_position") || "center";
+    const imgCol = (
+      <div style={{ position: "relative", overflow: "hidden", minHeight: 220, background: "#1a2a3a" }}>
+        {img ? (
+          imageFit === "contain"
+            ? <div style={{ width: "100%", height: "100%", minHeight: 220, display: "flex", alignItems: "center", justifyContent: "center", padding: 16, background: "#f0f4f8" }}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={img} alt="" style={{ maxWidth: "100%", maxHeight: 200, objectFit: "contain", display: "block", transform: zoom2col > 100 ? `scale(${zoom2col / 100})` : undefined, transformOrigin: "center" }} />
+              </div>
+            : /* eslint-disable-next-line @next/next/no-img-element */
+              <img src={img} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", objectPosition: imgPos, transform: zoom2col > 100 ? `scale(${zoom2col / 100})` : undefined, transformOrigin: imgPos, transition: "transform 0.2s" }} />
+        ) : (
+          <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <span style={{ color: "rgba(255,255,255,0.25)", fontSize: 11 }}>No image</span>
           </div>
-        : <div style={{ overflow: "hidden", minHeight: 160 }}><img src={img} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: getString(c, "image_position") || "center", transform: zoom2col > 100 ? `scale(${zoom2col / 100})` : undefined, transformOrigin: getString(c, "image_position") || "center" }} /></div>
-    ) : <div style={{ background: "#0a1523", minHeight: 160, display: "flex", alignItems: "center", justifyContent: "center" }}><span style={{ color: "rgba(255,255,255,0.3)", fontSize: 12 }}>Image</span></div>;
+        )}
+      </div>
+    );
+    const textCol = (
+      <div style={{ padding: "32px 24px", background: "#fff", display: "flex", flexDirection: "column", justifyContent: "center", gap: 8 }}>
+        {label && <span style={{ fontSize: 10, fontWeight: 800, color: "#C0185A", textTransform: "uppercase" as const, letterSpacing: "0.12em" }}>{label}</span>}
+        <h3 style={{ fontSize: 17, fontWeight: 700, color: "#2070B8", margin: 0, lineHeight: 1.3 }}>{heading}</h3>
+        <div style={{ width: 32, height: 3, background: "#C0185A", borderRadius: 2 }} />
+        {body && <p style={{ fontSize: 12.5, color: "#6c757d", lineHeight: 1.7, margin: 0 }}>{body.slice(0, 160)}{body.length > 160 ? "…" : ""}</p>}
+        {cta && <span style={{ display: "inline-block", marginTop: 4, padding: "8px 18px", background: "#C0185A", color: "#fff", borderRadius: 6, fontSize: 12, fontWeight: 700, width: "fit-content" }}>{ctaHref ? cta : cta}</span>}
+      </div>
+    );
     return (
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", background: "#f8f9fa", minHeight: 180 }}>
-        {imgCol}
-        <div style={{ padding: "28px 20px", background: "#fff" }}>
-          {label && <span style={{ fontSize: 11, fontWeight: 700, color: "#C0185A", textTransform: "uppercase", letterSpacing: "0.1em" }}>{label}</span>}
-          <h3 style={{ fontSize: 18, fontWeight: 700, color: "#2070B8", margin: "8px 0 10px" }}>{heading}</h3>
-          {body && <p style={{ fontSize: 12.5, color: "#6c757d", lineHeight: 1.7 }}>{body.slice(0, 120)}…</p>}
-          {cta && <span style={{ display: "inline-block", marginTop: 12, padding: "7px 16px", background: "#C0185A", color: "#fff", borderRadius: 4, fontSize: 12, fontWeight: 700 }}>{cta}</span>}
-        </div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", background: "#f8f9fa", minHeight: 220 }}>
+        {imageSide === "left" ? <>{imgCol}{textCol}</> : <>{textCol}{imgCol}</>}
       </div>
     );
   }
@@ -619,7 +704,7 @@ function SectionPreview({ sec, translatedJson, previewDevice = "desktop" }: { se
                 <span style={{ color: "#fff", fontWeight: 800 }}>✦</span>
               </div>
               <div style={{ fontWeight: 700, fontSize: 13, color: "#2070B8", marginBottom: 5 }}>{item.title || `Card ${i + 1}`}</div>
-              <div style={{ fontSize: 11.5, color: "#6c757d", lineHeight: 1.6 }}>{(item.description || "").slice(0, 70)}{(item.description || "").length > 70 ? "…" : ""}</div>
+              <div style={{ fontSize: 11.5, color: "#6c757d", lineHeight: 1.6, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical" as const }} dangerouslySetInnerHTML={{ __html: item.description || "" }} />
             </div>
           ))}
           {items.length > 4 && <div style={{ background: "#fff", borderRadius: 8, padding: "14px", display: "flex", alignItems: "center", justifyContent: "center", color: "#94a3b8", fontSize: 12 }}>+{items.length - 4} more</div>}
@@ -872,9 +957,10 @@ function BackgroundPanel({ sec, onUpdate }: { sec: Section; onUpdate: (sec: Sect
   const content = parseContent(sec.content_json);
   const set = (key: string, value: unknown) =>
     onUpdate({ ...sec, content_json: JSON.stringify({ ...content, [key]: value }) });
-  const fs: React.CSSProperties = { width: "100%", padding: "6px 8px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 12, fontFamily: "inherit", outline: "none", boxSizing: "border-box", background: "#fff" };
-  const lb: React.CSSProperties = { display: "block", fontSize: 10, fontWeight: 700, color: "#374151", marginBottom: 3, textTransform: "uppercase", letterSpacing: "0.04em" };
-  const hasBg = !!(getString(content, "bg_image") || getString(content, "bg_color"));
+  // Read image from bg_image (current) or image (legacy page_header field)
+  const currentBgImg = getString(content, "bg_image") || getString(content, "image");
+  const lb: React.CSSProperties = { display: "block", fontSize: 10, fontWeight: 700, color: "#374151", marginBottom: 3, textTransform: "uppercase" as const, letterSpacing: "0.04em" };
+  const hasBg = !!(currentBgImg || getString(content, "bg_color"));
   return (
     <div style={{ marginTop: 16, borderTop: "1px solid #f1f5f9", paddingTop: 10 }}>
       <button onClick={() => setOpen(o => !o)}
@@ -883,73 +969,57 @@ function BackgroundPanel({ sec, onUpdate }: { sec: Section; onUpdate: (sec: Sect
         <span style={{ fontSize: 10, opacity: 0.6 }}>{open ? "▲" : "▼"}</span>
       </button>
       {open && (
-        <div style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderTop: "none", borderRadius: "0 0 7px 7px", padding: "12px 10px", display: "flex", flexDirection: "column", gap: 10 }}>
-          {/* Recommended size hint */}
-          <div style={{ background: "#fefce8", border: "1px solid #fde68a", borderRadius: 5, padding: "7px 10px", fontSize: 11, color: "#92400e", lineHeight: 1.5 }}>
-            <strong>Recommended sizes:</strong><br />
-            Page Header / Hero: <strong>1920 × 600 px</strong><br />
-            Section background: <strong>1920 × 800 px</strong><br />
-            Two-column image: <strong>800 × 700 px</strong><br />
-            Format: JPG/WebP · Max 500 KB for fast load
-          </div>
+        <div style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderTop: "none", borderRadius: "0 0 7px 7px", padding: "12px 10px", display: "flex", flexDirection: "column", gap: 12 }}>
+
+          {/* Background image — full live preview + zoom + focal point grid */}
           <div>
             <label style={lb}>Background Image</label>
-            <MediaPicker value={getString(content, "bg_image")} onChange={v => set("bg_image", v)} />
-          </div>
-          {/* Overlay opacity */}
-          <div>
-            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 3 }}>
-              <label style={lb}>Overlay Opacity (darkens image for readable text)</label>
-              <span style={{ fontSize: 11, color: "#94a3b8", fontWeight: 700 }}>{Number(content.bg_overlay ?? 50)}%</span>
-            </div>
-            <input type="range" min={0} max={90} step={5}
-              value={Number(content.bg_overlay ?? 50)}
-              onChange={e => set("bg_overlay", Number(e.target.value))}
-              style={{ width: "100%", accentColor: "#2070B8" }} />
-            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: "#cbd5e1", marginTop: 2 }}>
-              <span>0% (no overlay)</span><span>90% (very dark)</span>
-            </div>
+            <PageImageControlPanel
+              value={currentBgImg}
+              zoom={Number(content.bg_zoom ?? 100)}
+              position={getString(content, "bg_position") || "center"}
+              onChange={v => onUpdate({ ...sec, content_json: JSON.stringify({ ...content, bg_image: v, image: "" }) })}
+              onZoomChange={v => set("bg_zoom", v)}
+              onPositionChange={v => set("bg_position", v)}
+              sizeHint="1920 × 800 px (full-width background) · JPG or WebP · under 500 KB"
+            />
           </div>
 
-          {/* Zoom */}
-          <div>
-            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 3 }}>
-              <label style={lb}>Image Zoom</label>
-              <span style={{ fontSize: 11, color: "#94a3b8", fontWeight: 700 }}>{Number(content.bg_zoom ?? 100)}%</span>
+          {/* Overlay opacity — only relevant when an image is set */}
+          {currentBgImg && (
+            <div>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 3 }}>
+                <label style={lb}>Overlay Opacity (darkens image for readable text)</label>
+                <span style={{ fontSize: 11, color: "#94a3b8", fontWeight: 700 }}>{Number(content.bg_overlay ?? 50)}%</span>
+              </div>
+              <input type="range" min={0} max={90} step={5}
+                value={Number(content.bg_overlay ?? 50)}
+                onChange={e => set("bg_overlay", Number(e.target.value))}
+                style={{ width: "100%", accentColor: "#2070B8" }} />
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: "#cbd5e1", marginTop: 2 }}>
+                <span>0% (no overlay)</span><span>90% (very dark)</span>
+              </div>
             </div>
-            <input type="range" min={100} max={200} step={5}
-              value={Number(content.bg_zoom ?? 100)}
-              onChange={e => set("bg_zoom", Number(e.target.value))}
-              style={{ width: "100%", accentColor: "#2070B8" }} />
-            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: "#cbd5e1", marginTop: 2 }}>
-              <span>100% (fit)</span><span>150% (zoomed)</span><span>200% (close-up)</span>
-            </div>
-          </div>
+          )}
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-            <div>
-              <label style={lb}>Image Focal Point</label>
-              <select style={fs} value={getString(content, "bg_position") || "center"} onChange={e => set("bg_position", e.target.value)}>
-                <option value="center">Center (default)</option>
-                <option value="top center">Top</option>
-                <option value="bottom center">Bottom</option>
-                <option value="center left">Left</option>
-                <option value="center right">Right</option>
-                <option value="top left">Top-Left</option>
-                <option value="top right">Top-Right</option>
-                <option value="bottom left">Bottom-Left</option>
-                <option value="bottom right">Bottom-Right</option>
-              </select>
-            </div>
-            <div>
-              <label style={lb}>Fallback Color</label>
-              <input type="color" style={{ ...fs, padding: "3px", height: 34, cursor: "pointer" }}
+          {/* Fallback color — shown when no image */}
+          <div>
+            <label style={lb}>Fallback Color (shown when no image is set)</label>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <input type="color"
+                style={{ width: 44, height: 34, padding: "2px", border: "1px solid #e2e8f0", borderRadius: 6, cursor: "pointer", background: "#fff" }}
                 value={getString(content, "bg_color") || "#0a1523"}
                 onChange={e => set("bg_color", e.target.value)} />
+              <span style={{ fontSize: 11, color: "#64748b", fontFamily: "monospace" }}>
+                {getString(content, "bg_color") || "#0a1523"}
+              </span>
             </div>
           </div>
-          {getString(content, "bg_image") && (
-            <button onClick={() => { set("bg_image", ""); }}
+
+          {/* Remove button */}
+          {currentBgImg && (
+            <button
+              onClick={() => onUpdate({ ...sec, content_json: JSON.stringify({ ...content, bg_image: "", image: "" }) })}
               style={{ fontSize: 11, padding: "4px 10px", background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 5, cursor: "pointer", color: "#C0185A", fontWeight: 600, width: "fit-content" }}>
               ✕ Remove background image
             </button>
@@ -1000,6 +1070,7 @@ function SectionEditor({ sec, onUpdate }: { sec: Section; onUpdate: (sec: Sectio
           onChange={v => set("image", v)}
           onZoomChange={v => set("image_zoom", v)}
           onPositionChange={v => set("image_position", v)}
+          sizeHint="1920 × 600 px (wide banner) · JPG or WebP · under 300 KB"
         />
       </div>
     </div>
@@ -1037,6 +1108,7 @@ function SectionEditor({ sec, onUpdate }: { sec: Section; onUpdate: (sec: Sectio
                 onChange={v => setItem("items", i, "image", v)}
                 onZoomChange={v => setItem("items", i, "image_zoom", v)}
                 onPositionChange={v => setItem("items", i, "image_position", v)}
+                sizeHint="800 × 800 px (square) · JPG or WebP · under 300 KB"
               />
             </div>
             <div><label style={lb}>Caption</label><input style={fs} value={item.caption || ""} onChange={e => setItem("items", i, "caption", e.target.value)} /></div>
@@ -1112,6 +1184,7 @@ function SectionEditor({ sec, onUpdate }: { sec: Section; onUpdate: (sec: Sectio
                 onChange={v => setItem("items", i, "image", v)}
                 onZoomChange={v => setItem("items", i, "image_zoom", v)}
                 onPositionChange={v => setItem("items", i, "image_position", v)}
+                sizeHint="400 × 400 px (square portrait) · JPG or WebP · under 150 KB"
               />
             </div>
           </div>
@@ -1128,15 +1201,8 @@ function SectionEditor({ sec, onUpdate }: { sec: Section; onUpdate: (sec: Sectio
       <div style={row}><label style={lb}>Eyebrow Text</label><input style={fs} value={getString(content, "eyebrow")} onChange={e => set("eyebrow", e.target.value)} placeholder="e.g. Ministry Programs" /></div>
       <div style={row}><label style={lb}>Heading</label><input style={fs} value={getString(content, "heading")} onChange={e => set("heading", e.target.value)} /></div>
       <div style={row}><label style={lb}>Subheading</label><textarea style={{ ...fs, minHeight: 70, resize: "vertical" }} value={getString(content, "subheading")} onChange={e => set("subheading", e.target.value)} /></div>
-      <div><label style={lb}>Background Image (optional)</label>
-        <PageImageControlPanel
-          value={getString(content, "image")}
-          zoom={Number(content.image_zoom ?? 100)}
-          position={getString(content, "image_position") || "center"}
-          onChange={v => set("image", v)}
-          onZoomChange={v => set("image_zoom", v)}
-          onPositionChange={v => set("image_position", v)}
-        />
+      <div style={{ background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 7, padding: "8px 10px", fontSize: 11, color: "#1e40af" }}>
+        Use the <strong>Background Image / Color</strong> panel below to set the header image, zoom, overlay, and fallback color.
       </div>
     </div>
   );
@@ -1154,6 +1220,7 @@ function SectionEditor({ sec, onUpdate }: { sec: Section; onUpdate: (sec: Sectio
           onChange={v => set("image", v)}
           onZoomChange={v => set("image_zoom", v)}
           onPositionChange={v => set("image_position", v)}
+          sizeHint="800 × 700 px (4:3 portrait) · JPG or WebP · under 400 KB"
         />
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 10 }}>
@@ -1197,7 +1264,15 @@ function SectionEditor({ sec, onUpdate }: { sec: Section; onUpdate: (sec: Sectio
               <div><label style={lb}>Title</label><input style={fs} value={item.title || ""} onChange={e => setItem("items", i, "title", e.target.value)} /></div>
               <div><label style={lb}>Color</label><input type="color" style={{ ...fs, padding: "3px", height: 34, cursor: "pointer" }} value={item.color || "#2070B8"} onChange={e => setItem("items", i, "color", e.target.value)} /></div>
             </div>
-            <div><label style={lb}>Description</label><textarea style={{ ...fs, minHeight: 60, resize: "vertical" }} value={item.description || ""} onChange={e => setItem("items", i, "description", e.target.value)} /></div>
+            <div>
+              <label style={lb}>Description (supports links, bold, lists)</label>
+              <RichTextEditor
+                value={item.description || ""}
+                onChange={v => setItem("items", i, "description", v)}
+                minHeight={80}
+                placeholder="Enter card description… Select text then click 🔗 to add a link."
+              />
+            </div>
           </div>
         ))}
         <button onClick={() => addItem("items", { title: "", description: "", color: "#2070B8" })} style={{ fontSize: 12, padding: "6px 12px", background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 6, cursor: "pointer", color: "#2070B8", fontWeight: 600 }}>
@@ -1229,6 +1304,7 @@ function SectionEditor({ sec, onUpdate }: { sec: Section; onUpdate: (sec: Sectio
                 onChange={v => setItem("items", i, "image", v)}
                 onZoomChange={v => setItem("items", i, "image_zoom", v)}
                 onPositionChange={v => setItem("items", i, "image_position", v)}
+                sizeHint="640 × 360 px (16:9) · JPG or WebP · under 200 KB"
               />
             </div>
             <div style={{ marginBottom: 8 }}><label style={lb}>Title</label><input style={fs} value={item.title || ""} onChange={e => setItem("items", i, "title", e.target.value)} /></div>

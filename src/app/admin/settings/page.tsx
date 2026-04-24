@@ -496,6 +496,38 @@ export default function FeaturesPage() {
   );
 }
 
+/* ── Password input field — defined at module scope so React keeps the same
+   component reference across parent re-renders (prevents focus loss on keypress) */
+const pwInp: React.CSSProperties = {
+  width: "100%", padding: "8px 38px 8px 11px", border: "1px solid #e2e8f0",
+  borderRadius: 7, fontSize: 13, fontFamily: "inherit", outline: "none",
+  background: "#fff", boxSizing: "border-box" as const,
+};
+
+function PwField({ label, value, show, onToggle, onChange }: {
+  label: string; value: string; show: boolean;
+  onToggle: () => void; onChange: (v: string) => void;
+}) {
+  return (
+    <div>
+      <label style={{ display: "block", fontSize: 11.5, fontWeight: 600, color: "#374151", marginBottom: 4 }}>{label}</label>
+      <div style={{ position: "relative" }}>
+        <input
+          type={show ? "text" : "password"}
+          value={value}
+          onChange={e => onChange(e.target.value)}
+          style={pwInp}
+          autoComplete="new-password"
+        />
+        <button type="button" onClick={onToggle}
+          style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "#94a3b8", display: "flex", alignItems: "center" }}>
+          {show ? <EyeOff size={14} /> : <Eye size={14} />}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 /* ── Change Password card ──────────────────────────────────────────────────── */
 function ChangePasswordCard() {
   const [current, setCurrent]   = useState("");
@@ -529,34 +561,6 @@ function ChangePasswordCard() {
       setBusy(false);
     }
   };
-
-  const pwInp: React.CSSProperties = {
-    width: "100%", padding: "8px 38px 8px 11px", border: "1px solid #e2e8f0",
-    borderRadius: 7, fontSize: 13, fontFamily: "inherit", outline: "none",
-    background: "#fff", boxSizing: "border-box",
-  };
-
-  const PwField = ({ label, value, show, onToggle, onChange }: {
-    label: string; value: string; show: boolean;
-    onToggle: () => void; onChange: (v: string) => void;
-  }) => (
-    <div>
-      <label style={{ display: "block", fontSize: 11.5, fontWeight: 600, color: "#374151", marginBottom: 4 }}>{label}</label>
-      <div style={{ position: "relative" }}>
-        <input
-          type={show ? "text" : "password"}
-          value={value}
-          onChange={e => onChange(e.target.value)}
-          style={pwInp}
-          autoComplete="new-password"
-        />
-        <button type="button" onClick={onToggle}
-          style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "#94a3b8", display: "flex", alignItems: "center" }}>
-          {show ? <EyeOff size={14} /> : <Eye size={14} />}
-        </button>
-      </div>
-    </div>
-  );
 
   return (
     <div style={card}>

@@ -151,7 +151,7 @@ function CardsGridSection({ content }: { content: Record<string, unknown> }) {
               </div>
               <div>
                 {item.title && <h3 style={{ fontSize: 15, fontWeight: 700, color: "#2070B8", marginBottom: 8 }}>{item.title}</h3>}
-                {item.description && <p style={{ color: "#6c757d", fontSize: 14, lineHeight: 1.75 }}>{item.description}</p>}
+                {item.description && <div style={{ color: "#6c757d", fontSize: 14, lineHeight: 1.75 }} dangerouslySetInnerHTML={{ __html: item.description }} />}
               </div>
             </div>
           ))}
@@ -201,9 +201,11 @@ function CtaSection({ content }: { content: Record<string, unknown> }) {
   const heading = getString(content, "heading"), body = getString(content, "body");
   const primaryText = getString(content, "primary_cta_text"), primaryLink = getString(content, "primary_cta_link");
   const secondaryText = getString(content, "secondary_cta_text"), secondaryLink = getString(content, "secondary_cta_link");
+  const bgColor = getString(content, "bg_color") || "#0d1b2e";
   return (
-    <section style={{ background: "#0d1b2e", padding: "80px 24px", textAlign: "center" }}>
-      <div style={{ maxWidth: 700, margin: "0 auto" }}>
+    <section style={{ backgroundColor: bgColor, padding: "80px 24px", textAlign: "center", ...getBgStyle(content) }}>
+      <BgImageOverlay content={content} />
+      <div style={{ maxWidth: 700, margin: "0 auto", position: "relative", zIndex: 1 }}>
         {heading && <h2 style={{ fontSize: "clamp(24px,3.5vw,42px)", fontWeight: 800, color: "#fff", margin: "0 0 16px" }}>{heading}</h2>}
         {body && <p style={{ fontSize: 18, color: "rgba(255,255,255,0.65)", margin: "0 0 32px", lineHeight: 1.7 }}>{body}</p>}
         <div style={{ display: "flex", gap: 14, justifyContent: "center", flexWrap: "wrap" }}>
@@ -290,17 +292,210 @@ async function CustomFormSection({ content }: { content: Record<string, unknown>
   );
 }
 
+function HeroSection({ content }: { content: Record<string, unknown> }) {
+  const heading = getString(content, "heading");
+  const subheading = getString(content, "subheading");
+  const ctaText = getString(content, "cta_text");
+  const ctaLink = getString(content, "cta_link");
+  const image = getString(content, "image");
+  const imageZoom = Number(content.image_zoom ?? 100);
+  const imagePosition = getString(content, "image_position") || "center";
+  return (
+    <section style={{ position: "relative", background: image ? undefined : "#0a1523", height: "clamp(280px,35vw,420px)", display: "flex", alignItems: "center", justifyContent: "center", textAlign: "center", overflow: "hidden" }}>
+      {image && <Image src={image} alt={heading} fill style={{ objectFit: "cover", objectPosition: imagePosition, transform: imageZoom > 100 ? `scale(${imageZoom / 100})` : undefined, transformOrigin: imagePosition }} priority />}
+      {image && <div style={{ position: "absolute", inset: 0, background: "rgba(10,21,35,0.65)" }} />}
+      <div style={{ position: "relative", zIndex: 1, padding: "0 24px", maxWidth: 800 }}>
+        {heading && <h1 style={{ fontSize: "clamp(28px,5vw,56px)", fontWeight: 800, color: "#fff", lineHeight: 1.15, margin: "0 0 16px" }}>{heading}</h1>}
+        {subheading && <p style={{ fontSize: "clamp(16px,2.5vw,22px)", color: "rgba(255,255,255,0.82)", margin: "0 0 28px", lineHeight: 1.6 }}>{subheading}</p>}
+        {ctaText && ctaLink && <a href={ctaLink} style={{ display: "inline-block", padding: "14px 32px", background: "#C0185A", color: "#fff", borderRadius: 8, fontWeight: 700, fontSize: 16, textDecoration: "none" }}>{ctaText}</a>}
+      </div>
+    </section>
+  );
+}
+
+interface SermonItem2 { image?: string; title?: string; date?: string; href?: string; }
+function SermonsGridSection({ content }: { content: Record<string, unknown> }) {
+  const heading = getString(content, "heading");
+  const subtitle = getString(content, "subtitle");
+  const youtubeUrl = getString(content, "youtube_url");
+  const items = getArray<SermonItem2>(content, "items");
+  return (
+    <section style={{ padding: "80px 24px", backgroundColor: "#f8f9fa" }}>
+      <div style={{ maxWidth: 1280, margin: "0 auto" }}>
+        <div style={{ textAlign: "center", marginBottom: 56 }}>
+          {heading && <h2 style={{ fontSize: "clamp(1.6rem,3vw,2.2rem)", fontWeight: 700, color: "#2070B8", marginBottom: 12 }}>{heading}</h2>}
+          <div style={{ width: 48, height: 4, backgroundColor: "#C0185A", borderRadius: 2, margin: "0 auto" }} />
+          {subtitle && <p style={{ color: "#6c757d", maxWidth: 480, margin: "16px auto 0", lineHeight: 1.8 }}>{subtitle}</p>}
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(280px,1fr))", gap: 32, marginBottom: 40 }}>
+          {items.map((s, i) => (
+            <a key={i} href={s.href || "#"} target="_blank" rel="noopener noreferrer" style={{ display: "block", textDecoration: "none" }}>
+              <div style={{ position: "relative", height: 192, overflow: "hidden", backgroundColor: "#1a2a3a", borderRadius: "4px 4px 0 0" }}>
+                {s.image && <Image src={s.image} alt={s.title || ""} fill style={{ objectFit: "cover" }} />}
+                <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", backgroundColor: "rgba(0,0,0,0.35)" }}>
+                  <div style={{ width: 56, height: 56, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", backgroundColor: "#C0185A" }}>
+                    <span style={{ color: "#fff", fontSize: 22, marginLeft: 3 }}>▶</span>
+                  </div>
+                </div>
+              </div>
+              <div style={{ padding: "20px", background: "#fff", borderRadius: "0 0 4px 4px", boxShadow: "0 2px 8px rgba(0,0,0,0.07)" }}>
+                {s.date && <p style={{ fontSize: 12, color: "#adb5bd", marginBottom: 8 }}>{s.date}</p>}
+                {s.title && <h4 style={{ fontWeight: 700, fontSize: 14, lineHeight: 1.4, color: "#2070B8" }}>{s.title}</h4>}
+              </div>
+            </a>
+          ))}
+        </div>
+        {youtubeUrl && <div style={{ textAlign: "center" }}><a href={youtubeUrl} target="_blank" rel="noopener noreferrer" className="btn-primary" style={{ display: "inline-flex", alignItems: "center", gap: 8 }}><span style={{ fontSize: 16 }}>▶</span> Watch on YouTube</a></div>}
+      </div>
+    </section>
+  );
+}
+
+interface GalleryItem2 { image?: string; caption?: string; }
+function GallerySection({ content }: { content: Record<string, unknown> }) {
+  const heading = getString(content, "heading");
+  const items = getArray<GalleryItem2>(content, "items");
+  return (
+    <section style={{ maxWidth: 1100, margin: "0 auto", padding: "60px 24px" }}>
+      {heading && <h2 style={{ fontSize: "clamp(22px,3vw,36px)", fontWeight: 700, color: "#2070B8", margin: "0 0 28px", textAlign: "center" }}>{heading}</h2>}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(240px,1fr))", gap: 16 }}>
+        {items.map((item, i) => (
+          <div key={i} style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {item.image && <div style={{ position: "relative", aspectRatio: "1/1", borderRadius: 10, overflow: "hidden" }}><Image src={item.image} alt={item.caption || `Gallery image ${i + 1}`} fill style={{ objectFit: "cover" }} /></div>}
+            {item.caption && <p style={{ fontSize: 13.5, color: "#64748b", textAlign: "center", margin: 0 }}>{item.caption}</p>}
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+interface FaqItem2 { question?: string; answer?: string; }
+function FaqSection({ content }: { content: Record<string, unknown> }) {
+  const heading = getString(content, "heading");
+  const items = getArray<FaqItem2>(content, "items");
+  return (
+    <section style={{ maxWidth: 800, margin: "0 auto", padding: "60px 24px" }}>
+      {heading && <h2 style={{ fontSize: "clamp(22px,3vw,36px)", fontWeight: 700, color: "#2070B8", margin: "0 0 28px" }}>{heading}</h2>}
+      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        {items.map((item, i) => (
+          <details key={i} style={{ border: "1px solid #e2e8f0", borderRadius: 10, overflow: "hidden" }}>
+            <summary style={{ padding: "16px 20px", fontWeight: 600, fontSize: 16, color: "#0f172a", cursor: "pointer", background: "#f8fafc", listStyle: "none" }}>{item.question}</summary>
+            {item.answer && <div style={{ padding: "16px 20px", color: "#4a5568", lineHeight: 1.7, fontSize: 15 }}>{item.answer}</div>}
+          </details>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+interface TeamItem2 { name?: string; role?: string; image?: string; bio?: string; }
+function TeamSection({ content }: { content: Record<string, unknown> }) {
+  const heading = getString(content, "heading");
+  const items = getArray<TeamItem2>(content, "items");
+  return (
+    <section style={{ maxWidth: 1100, margin: "0 auto", padding: "60px 24px" }}>
+      {heading && <h2 style={{ fontSize: "clamp(22px,3vw,36px)", fontWeight: 700, color: "#2070B8", margin: "0 0 32px", textAlign: "center" }}>{heading}</h2>}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(220px,1fr))", gap: 24 }}>
+        {items.map((member, i) => (
+          <div key={i} style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", overflow: "hidden", boxShadow: "0 2px 12px rgba(0,0,0,0.05)" }}>
+            {member.image && <div style={{ position: "relative", height: 220 }}><Image src={member.image} alt={member.name || "Team member"} fill style={{ objectFit: "cover" }} /></div>}
+            <div style={{ padding: "16px 18px" }}>
+              {member.name && <h3 style={{ fontSize: 16, fontWeight: 700, color: "#0f172a", margin: "0 0 4px" }}>{member.name}</h3>}
+              {member.role && <p style={{ fontSize: 13, color: "#2070B8", fontWeight: 600, margin: "0 0 10px" }}>{member.role}</p>}
+              {member.bio && <p style={{ fontSize: 13.5, color: "#64748b", lineHeight: 1.6, margin: 0 }}>{member.bio}</p>}
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+async function LatestPostsSection({ content }: { content: Record<string, unknown> }) {
+  const heading = getString(content, "heading") || "Latest Posts";
+  const subtitle = getString(content, "subtitle");
+  const postType = getString(content, "post_type") || "all";
+  const count = parseInt(getString(content, "count") || "6", 10);
+  interface PostRow { id: number; title: string; slug: string; post_type: string; excerpt: string; featured_image: string; created_at: string; }
+  let posts: PostRow[] = [];
+  try {
+    const query = postType === "all"
+      ? `SELECT id,title,slug,post_type,excerpt,featured_image,created_at FROM posts WHERE status='published' ORDER BY created_at DESC LIMIT ?`
+      : `SELECT id,title,slug,post_type,excerpt,featured_image,created_at FROM posts WHERE status='published' AND post_type=? ORDER BY created_at DESC LIMIT ?`;
+    const args = postType === "all" ? [count] : [postType, count];
+    const [rows] = await pool.execute(query, args);
+    posts = rows as PostRow[];
+  } catch { /* DB not ready */ }
+  const typeColors: Record<string, string> = { blog: "#2070B8", news: "#16a34a", event: "#7c3aed" };
+  return (
+    <section style={{ padding: "60px 24px", background: "#f8f9fa" }}>
+      <div style={{ maxWidth: 1200, margin: "0 auto" }}>
+        {heading && <h2 style={{ fontSize: "clamp(22px,3vw,34px)", fontWeight: 800, color: "#0f172a", textAlign: "center", marginBottom: 8 }}>{heading}</h2>}
+        {subtitle && <p style={{ textAlign: "center", color: "#64748b", fontSize: 16, marginBottom: 36 }}>{subtitle}</p>}
+        {posts.length === 0 ? <p style={{ textAlign: "center", color: "#94a3b8" }}>No posts published yet.</p> : (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(300px,1fr))", gap: 24 }}>
+            {posts.map(post => {
+              const date = new Date(post.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+              const tc = typeColors[post.post_type] ?? "#2070B8";
+              const href = `/${post.post_type === "event" ? "events" : post.post_type === "news" ? "news" : "blog"}/${post.slug}`;
+              return (
+                <a key={post.id} href={href} style={{ textDecoration: "none", display: "flex", flexDirection: "column", background: "#fff", borderRadius: 10, overflow: "hidden", border: "1px solid #f1f5f9", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
+                  {post.featured_image ? <img src={post.featured_image} alt={post.title} style={{ width: "100%", height: 160, objectFit: "cover", display: "block" }} /> : <div style={{ height: 100, background: `linear-gradient(135deg,${tc}22,${tc}11)`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28 }}>📰</div>}
+                  <div style={{ padding: "16px 18px", flex: 1 }}>
+                    <div style={{ display: "flex", gap: 6, alignItems: "center", marginBottom: 8 }}>
+                      <span style={{ fontSize: 10, fontWeight: 800, background: tc, color: "#fff", padding: "2px 8px", borderRadius: 3, textTransform: "uppercase" as const }}>{post.post_type}</span>
+                      <span style={{ fontSize: 11, color: "#94a3b8" }}>{date}</span>
+                    </div>
+                    <h3 style={{ fontSize: 15, fontWeight: 700, color: "#0f172a", lineHeight: 1.4, marginBottom: 8 }}>{post.title}</h3>
+                    {post.excerpt && <p style={{ fontSize: 13, color: "#64748b", lineHeight: 1.55 }}>{post.excerpt.slice(0, 100)}{post.excerpt.length > 100 ? "…" : ""}</p>}
+                  </div>
+                </a>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
+function DonateStripSection({ content }: { content: Record<string, unknown> }) {
+  const text = getString(content, "text") || "Partner with us — every gift reaches another soul with the Gospel.";
+  const buttonLabel = getString(content, "button_label") || "Give Now";
+  const buttonHref = getString(content, "button_href") || "/give";
+  const bgColor = getString(content, "bg_color") || "#1B3A76";
+  const btnColor = getString(content, "btn_color") || "#9B1030";
+  return (
+    <div style={{ backgroundColor: bgColor, padding: "20px 24px" }}>
+      <div style={{ maxWidth: "1280px", margin: "0 auto", display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: "16px" }}>
+        <p style={{ fontWeight: 700, fontSize: "15px", color: "#fff", margin: 0 }}>{text}</p>
+        <a href={buttonHref} style={{ display: "inline-flex", alignItems: "center", gap: "6px", padding: "10px 24px", backgroundColor: btnColor, color: "#fff", fontWeight: 700, fontSize: "13px", borderRadius: "3px", textDecoration: "none", whiteSpace: "nowrap" }}>
+          {buttonLabel}
+        </a>
+      </div>
+    </div>
+  );
+}
+
 function renderSection(section: Section) {
   const content = parseContent(section.content_json);
   switch (section.section_type) {
     case "page_header":  return <PageHeaderSection key={section.id} content={content} />;
+    case "hero":         return <HeroSection key={section.id} content={content} />;
     case "text":         return <TextSection key={section.id} content={content} />;
     case "cards_grid":   return <CardsGridSection key={section.id} content={content} />;
+    case "sermons_grid": return <SermonsGridSection key={section.id} content={content} />;
     case "two_col":      return <TwoColSection key={section.id} content={content} />;
+    case "gallery":      return <GallerySection key={section.id} content={content} />;
     case "cta":          return <CtaSection key={section.id} content={content} />;
+    case "faq":          return <FaqSection key={section.id} content={content} />;
+    case "team":         return <TeamSection key={section.id} content={content} />;
     case "contact_form": return <ContactFormSection key={section.id} content={content} />;
     case "booking_form": return <BookingFormSection key={section.id} />;
+    case "latest_posts": return <LatestPostsSection key={section.id} content={content} />;
     case "custom_form":  return <CustomFormSection key={section.id} content={content} />;
+    case "donate_strip": return <DonateStripSection key={section.id} content={content} />;
     default:             return null;
   }
 }
