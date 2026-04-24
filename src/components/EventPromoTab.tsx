@@ -112,7 +112,12 @@ export default function EventPromoTab() {
 
             {imgUrl && (
               /* eslint-disable-next-line @next/next/no-img-element */
-              <img src={imgUrl} alt={title} style={{ width: "100%", height: 108, objectFit: "cover", borderRadius: 10, display: "block" }} />
+              <img src={imgUrl} alt={title} style={{
+                width: "100%", height: 108, objectFit: "cover", borderRadius: 10, display: "block",
+                objectPosition: config.image_position || "center",
+                transform: (config.image_zoom ?? 100) > 100 ? `scale(${(config.image_zoom ?? 100) / 100})` : undefined,
+                transformOrigin: config.image_position || "center",
+              }} />
             )}
 
             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>

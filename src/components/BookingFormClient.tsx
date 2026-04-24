@@ -143,7 +143,7 @@ export default function BookingFormClient() {
               <h2 style={{ fontSize: "1.5rem", fontWeight: 700, color: "#2070B8", marginBottom: 16 }}>What to Expect</h2>
               <div style={{ width: 40, height: 4, backgroundColor: "#C0185A", borderRadius: 2, marginBottom: 24 }} />
               <div style={{ display: "flex", flexDirection: "column", gap: 20, fontSize: 14, color: "#6c757d" }}>
-                {["We will review your inquiry within 3–5 business days.", "A team member will reach out to discuss your event needs in detail.", "We work with you to plan and prepare every aspect of the event.", "No event is too small. We serve churches of all sizes and denominations."].map((text, i) => (
+                {["Your inquiry goes directly to our ministry team — we'll respond as soon as possible.", "A team member will personally reach out to discuss your event vision in detail.", "We partner with you to plan and prepare every aspect of the event.", "No event is too small. We joyfully serve churches of all sizes and denominations."].map((text, i) => (
                   <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
                     <CheckCircle size={18} style={{ flexShrink: 0, marginTop: 1, color: "#C0185A" }} />
                     <p>{text}</p>
@@ -159,10 +159,15 @@ export default function BookingFormClient() {
             {/* Form */}
             <div>
               {submitted ? (
-                <div style={{ borderRadius: 12, padding: 48, textAlign: "center", backgroundColor: "#f8f9fa" }}>
-                  <CheckCircle size={56} style={{ color: "#C0185A", margin: "0 auto 16px" }} />
-                  <h3 style={{ fontSize: "1.5rem", fontWeight: 700, color: "#2070B8", marginBottom: 12 }}>Thank You!</h3>
-                  <p style={{ color: "#6c757d" }}>Your booking inquiry has been received. We will be in touch within 3–5 business days to discuss your event.</p>
+                <div style={{ borderRadius: 12, padding: 48, textAlign: "center", backgroundColor: "#f0fdf4", border: "1px solid #bbf7d0" }}>
+                  <CheckCircle size={56} style={{ color: "#16a34a", margin: "0 auto 16px" }} />
+                  <h3 style={{ fontSize: "1.5rem", fontWeight: 700, color: "#0f172a", marginBottom: 12 }}>Inquiry Received!</h3>
+                  <p style={{ color: "#374151", fontSize: 15, lineHeight: 1.7, marginBottom: 8 }}>
+                    Thank you for reaching out about your event! Our ministry team has received your inquiry and will contact you <strong>as soon as possible</strong> to discuss how we can serve you.
+                  </p>
+                  <p style={{ color: "#64748b", fontSize: 13 }}>
+                    We are excited about the opportunity to partner with your ministry. God bless you! 🙏
+                  </p>
                 </div>
               ) : (
                 <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 20 }}>

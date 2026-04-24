@@ -158,7 +158,7 @@ export default function HomeLiveSections({ initialWelcome, initialMinistries }: 
       <section ref={welcomeRef} style={{ backgroundColor: "#f8f9fa" }}>
         <div style={{ maxWidth: "1280px", margin: "0 auto" }}>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 500px), 1fr))" }}>
-            <div style={{ position: "relative", minHeight: "420px", backgroundColor: "#1a2a3a" }}>
+            <div style={{ position: "relative", minHeight: "420px", overflow: "hidden", backgroundColor: "#1a2a3a" }}>
               <SafeImage
                 src={welcome.image}
                 alt=""

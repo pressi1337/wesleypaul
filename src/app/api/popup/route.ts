@@ -26,6 +26,8 @@ export interface PopupConfig {
   show_delay: number;
   home_only: boolean;
   show_media: boolean; // false = content-only, no image/video shown
+  image_zoom?: number;     // 100 = no zoom, 110–200 = zoomed in
+  image_position?: string; // CSS object-position, e.g. "center", "top left"
   // Per-language overrides keyed by lang code
   translations?: Record<string, PopupLangContent>;
 }
@@ -44,6 +46,8 @@ const DEFAULT_CONFIG: PopupConfig = {
   show_delay: 1,
   home_only: true,
   show_media: true,
+  image_zoom: 100,
+  image_position: "center",
   translations: {},
 };
 

@@ -586,7 +586,7 @@ function SectionPreview({ sec, translatedJson, previewDevice = "desktop" }: { se
         ? <div style={{ background: "#fff", overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center" }}>
             <img src={img} alt="" style={{ maxWidth: "100%", height: "auto", display: "block", transform: zoom2col > 100 ? `scale(${zoom2col / 100})` : undefined, transformOrigin: "center" }} />
           </div>
-        : <img src={img} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: getString(c, "image_position") || "center", minHeight: 160, transform: zoom2col > 100 ? `scale(${zoom2col / 100})` : undefined, transformOrigin: getString(c, "image_position") || "center" }} />
+        : <div style={{ overflow: "hidden", minHeight: 160 }}><img src={img} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: getString(c, "image_position") || "center", transform: zoom2col > 100 ? `scale(${zoom2col / 100})` : undefined, transformOrigin: getString(c, "image_position") || "center" }} /></div>
     ) : <div style={{ background: "#0a1523", minHeight: 160, display: "flex", alignItems: "center", justifyContent: "center" }}><span style={{ color: "rgba(255,255,255,0.3)", fontSize: 12 }}>Image</span></div>;
     return (
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", background: "#f8f9fa", minHeight: 180 }}>

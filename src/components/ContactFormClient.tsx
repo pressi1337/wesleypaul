@@ -141,10 +141,15 @@ export default function ContactFormClient({ content = {} }: { content?: ContactC
           <div>
             <h2 style={{ fontSize: "1.5rem", fontWeight: 700, color: "#2070B8", marginBottom: 24 }}>Send Us a Message</h2>
             {submitted ? (
-              <div style={{ borderRadius: 12, padding: 48, textAlign: "center", backgroundColor: "#f8f9fa" }}>
-                <CheckCircle size={56} style={{ color: "#C0185A", margin: "0 auto 16px" }} />
-                <h3 style={{ fontSize: "1.5rem", fontWeight: 700, color: "#2070B8", marginBottom: 12 }}>Message Received!</h3>
-                <p style={{ color: "#6c757d" }}>Thank you for reaching out. A member of our team will be in touch within 3–5 business days.</p>
+              <div style={{ borderRadius: 12, padding: 48, textAlign: "center", backgroundColor: "#f0fdf4", border: "1px solid #bbf7d0" }}>
+                <CheckCircle size={56} style={{ color: "#16a34a", margin: "0 auto 16px" }} />
+                <h3 style={{ fontSize: "1.5rem", fontWeight: 700, color: "#0f172a", marginBottom: 12 }}>Message Received!</h3>
+                <p style={{ color: "#374151", fontSize: 15, lineHeight: 1.7, marginBottom: 8 }}>
+                  Thank you for contacting Wesley Paul International Ministries. We have received your message and our team will get back to you <strong>as soon as possible</strong>.
+                </p>
+                <p style={{ color: "#64748b", fontSize: 13 }}>
+                  We look forward to connecting with you. God bless you! 🙏
+                </p>
               </div>
             ) : (
               <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 20 }}>

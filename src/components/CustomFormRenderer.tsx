@@ -17,9 +17,10 @@ interface Props {
   formId: number;
   fields: FormField[];
   successMessage: string;
+  submitLabel?: string;
 }
 
-export default function CustomFormRenderer({ formId, fields: rawFields, successMessage }: Props) {
+export default function CustomFormRenderer({ formId, fields: rawFields, successMessage, submitLabel = "Submit" }: Props) {
   const [fields, setFields] = useState<FormField[]>(rawFields);
   const [values, setValues] = useState<Record<string, string>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -206,16 +207,18 @@ export default function CustomFormRenderer({ formId, fields: rawFields, successM
         disabled={submitting}
         style={{
           padding: "13px 28px",
-          background: submitting ? "#94a3b8" : "#2070B8",
+          background: submitting ? "#94a3b8" : "#C0185A",
           color: "#fff",
           border: "none",
           borderRadius: 8,
           fontSize: 15,
           fontWeight: 700,
           cursor: submitting ? "not-allowed" : "pointer",
-          alignSelf: "flex-start",
+          alignSelf: "stretch",
+          transition: "background 0.15s",
+          letterSpacing: "0.02em",
         }}>
-        {submitting ? "Submitting…" : "Submit"}
+        {submitting ? "Submitting…" : submitLabel}
       </button>
     </form>
   );

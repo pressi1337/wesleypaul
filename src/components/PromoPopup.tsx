@@ -10,10 +10,12 @@ import Link from "next/link";
  * Show behaviour:
  *  - show_once ON  → shown only once ever (localStorage). Won't show again after dismiss.
  *  - show_once OFF → shown on every full page load / refresh.
- *  - Never re-shows on SPA navigation (fetched.current stays true across route changes).
+ *  - Never re-shows on SPA navigation (component stays mounted in root layout).
+ *  - ?test_popup=1 bypasses the show_once localStorage guard for admin previews.
  */
 
-const SEEN_KEY = "promo_popup_seen";
+const seenKey = (cfg: { cta_href?: string; media_url?: string; title?: string }) =>
+  `promo_popup_seen_${encodeURIComponent(cfg.cta_href || cfg.media_url || cfg.title || "").slice(0, 40)}`;
 
 async function translateText(text: string, lang: string): Promise<string> {
   if (!text || lang === "en") return text;
@@ -36,40 +38,39 @@ export default function PromoPopup() {
   const [desc, setDesc]     = useState("");
   const [ctaLabel, setCtaLabel] = useState("");
   const videoRef = useRef<HTMLVideoElement>(null);
-  const fetched  = useRef(false); // prevent re-show on SPA navigation
 
   useEffect(() => {
-    if (fetched.current) return;
     if (pathname.startsWith("/admin")) return;
-    fetched.current = true;
 
-    // Detect current language from URL (?lang=xx)
+    let active = true; // guards against React Strict-Mode double-invoke & unmount races
+
     const urlLang = new URLSearchParams(window.location.search).get("lang") || "en";
+    // ?test_popup=1 lets admins preview without clearing localStorage
+    const isTest  = new URLSearchParams(window.location.search).get("test_popup") === "1";
 
     fetch("/api/popup")
       .then(r => r.json())
       .then(async (d: { config?: PopupConfig }) => {
+        if (!active) return;
         const cfg = d.config;
         if (!cfg?.enabled) return;
         if (!cfg.media_url && !cfg.title && !cfg.description) return;
         // Respect home_only setting
         if (cfg.home_only && pathname !== "/") return;
-        // show_once: skip if visitor already dismissed it
-        if (cfg.show_once && localStorage.getItem(SEEN_KEY)) return;
+        // show_once: skip if visitor already dismissed — unless admin is testing
+        if (!isTest && cfg.show_once && localStorage.getItem(seenKey(cfg))) return;
 
         // Pick per-language override if available, fall back to defaults
         const langOverride = (urlLang !== "en" && cfg.translations?.[urlLang]) || {};
-        // show_media: lang override takes precedence; undefined = inherit global setting
         const activeShowMedia = langOverride.show_media !== undefined
           ? langOverride.show_media
           : (cfg.show_media !== false);
         const activeMedia  = activeShowMedia ? (langOverride.media_url  || cfg.media_url)  : "";
         const activePoster = activeShowMedia ? (langOverride.poster_url || cfg.poster_url) : "";
-        const rawTitle     = langOverride.title      || cfg.title     || "";
+        const rawTitle     = langOverride.title       || cfg.title       || "";
         const rawDesc      = langOverride.description || cfg.description || "";
-        const rawCta       = langOverride.cta_label  || cfg.cta_label  || "";
+        const rawCta       = langOverride.cta_label   || cfg.cta_label   || "";
 
-        // Only translate if no manual override was provided for this lang
         const needsTranslate = urlLang !== "en" && !langOverride.title;
         const [t, cta] = needsTranslate
           ? await Promise.all([
@@ -78,22 +79,25 @@ export default function PromoPopup() {
             ])
           : [rawTitle, rawCta];
 
+        if (!active) return; // may have been cancelled during async translate
+
         setTitle(t);
         setDesc(rawDesc);
         setCtaLabel(cta || rawCta);
-
-        // Patch config with resolved media for this language
         setConfig({ ...cfg, media_url: activeMedia, poster_url: activePoster });
 
         const delay = Math.max(0, cfg.show_delay ?? 1) * 1000;
-        setTimeout(() => setShow(true), delay);
+        setTimeout(() => { if (active) setShow(true); }, delay);
       })
       .catch(() => {});
+
+    return () => { active = false; };
+  // pathname is stable per mount — listed to satisfy linter only
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const close = () => {
-    if (config?.show_once) localStorage.setItem(SEEN_KEY, "1");
+    if (config?.show_once) localStorage.setItem(seenKey(config), "1");
     setShow(false);
     videoRef.current?.pause();
   };
@@ -178,6 +182,9 @@ export default function PromoPopup() {
                 style={{
                   width: "100%", display: "block",
                   maxHeight: "55vh", objectFit: "cover",
+                  objectPosition: config.image_position || "center",
+                  transform: (config.image_zoom ?? 100) > 100 ? `scale(${(config.image_zoom ?? 100) / 100})` : undefined,
+                  transformOrigin: config.image_position || "center",
                 }}
               />
             )}

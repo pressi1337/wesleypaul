@@ -16,6 +16,8 @@ export interface EventPromoTabConfig {
   subtitle: string;
   event_date: string;
   image_url: string;
+  image_zoom?: number;
+  image_position?: string;
   cta_label: string;
   cta_href: string;
   translations?: Record<string, EventPromoTabLangContent>;
@@ -28,6 +30,8 @@ const DEFAULT: EventPromoTabConfig = {
   subtitle: "",
   event_date: "",
   image_url: "",
+  image_zoom: 100,
+  image_position: "center",
   cta_label: "View Details",
   cta_href: "",
   translations: {},

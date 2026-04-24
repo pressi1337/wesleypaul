@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import {
   Save, Check, AlertCircle, Layout, Megaphone,
   Image as ImageIcon, Film, FolderOpen, X, Globe, Languages, Loader,
-  PanelRight, CalendarDays,
+  PanelRight, CalendarDays, ZoomIn, ZoomOut, RotateCcw, Eye,
 } from "lucide-react";
 import MediaPickerModal from "@/components/MediaPickerModal";
 import RichTextEditor from "@/components/RichTextEditor";
@@ -104,6 +104,103 @@ function MediaField({
   );
 }
 
+// ── Zoom / focal-point helpers ───────────────────────────────────────────────
+const FOCAL_FLAT = [
+  "top left",    "top center",    "top right",
+  "center left", "center",        "center right",
+  "bottom left", "bottom center", "bottom right",
+];
+const FOCAL_LABELS: Record<string, string> = {
+  "top left": "↖ TL", "top center": "↑ TC", "top right": "TR ↗",
+  "center left": "← ML", "center": "CTR", "center right": "MR →",
+  "bottom left": "↙ BL", "bottom center": "↓ BC", "bottom right": "BR ↘",
+};
+
+function PromoImageZoomPanel({
+  imageUrl, zoom, position, onZoomChange, onPositionChange, sizeHint, previewAspect = "16/9",
+}: {
+  imageUrl: string; zoom: number; position: string;
+  onZoomChange: (v: number) => void; onPositionChange: (v: string) => void;
+  sizeHint: string; previewAspect?: string;
+}) {
+  if (!imageUrl) return null;
+  const btnBase: React.CSSProperties = {
+    padding: "4px 6px", border: "1px solid #e2e8f0", borderRadius: 5,
+    background: "#f8fafc", cursor: "pointer", color: "#475569",
+    display: "flex", alignItems: "center", justifyContent: "center",
+  };
+  return (
+    <div style={{ marginTop: 10, background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 10, padding: "12px", display: "flex", flexDirection: "column", gap: 10 }}>
+
+      {/* Frontend preview */}
+      <div>
+        <div style={{ fontSize: 10, fontWeight: 700, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 5, display: "flex", alignItems: "center", gap: 4 }}>
+          <Eye size={10} /> Frontend Preview
+        </div>
+        <div style={{ aspectRatio: previewAspect, width: "100%", overflow: "hidden", borderRadius: 7, border: "1px solid #e2e8f0", background: "#0a0a0a" }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={imageUrl} alt="" style={{
+            width: "100%", height: "100%", objectFit: "cover",
+            objectPosition: position,
+            transform: zoom > 100 ? `scale(${zoom / 100})` : "none",
+            transformOrigin: position,
+            transition: "transform 0.2s, object-position 0.2s",
+            display: "block",
+          }} onError={e => { (e.currentTarget as HTMLImageElement).style.display = "none"; }} />
+        </div>
+      </div>
+
+      {/* Zoom slider */}
+      <div>
+        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
+          <span style={{ fontSize: 10, fontWeight: 700, color: "#374151", textTransform: "uppercase", flex: 1 }}>Zoom</span>
+          <span style={{ fontSize: 11, color: "#2070B8", fontWeight: 700 }}>{zoom}%</span>
+          {zoom !== 100 && (
+            <button type="button" onClick={() => { onZoomChange(100); onPositionChange("center"); }}
+              title="Reset zoom & position"
+              style={{ ...btnBase, padding: "3px 7px", fontSize: 10, gap: 3, color: "#64748b" }}>
+              <RotateCcw size={10} /> Reset
+            </button>
+          )}
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <button type="button" onClick={() => onZoomChange(Math.max(100, zoom - 5))} style={btnBase} title="Zoom out">
+            <ZoomOut size={13} />
+          </button>
+          <input type="range" min={100} max={200} step={5} value={zoom}
+            onChange={e => onZoomChange(Number(e.target.value))}
+            style={{ flex: 1, accentColor: "#2070B8", cursor: "pointer" }} />
+          <button type="button" onClick={() => onZoomChange(Math.min(200, zoom + 5))} style={btnBase} title="Zoom in">
+            <ZoomIn size={13} />
+          </button>
+        </div>
+      </div>
+
+      {/* Focal point grid */}
+      <div>
+        <span style={{ fontSize: 10, fontWeight: 700, color: "#374151", textTransform: "uppercase", display: "block", marginBottom: 4 }}>Focal Point</span>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 3, maxWidth: 190 }}>
+          {FOCAL_FLAT.map(fp => (
+            <button key={fp} type="button" onClick={() => onPositionChange(fp)} title={fp} style={{
+              padding: "5px 2px", border: `2px solid ${position === fp ? "#2070B8" : "#e2e8f0"}`,
+              borderRadius: 4, background: position === fp ? "#eff6ff" : "#fff",
+              cursor: "pointer", fontSize: 9, color: position === fp ? "#2070B8" : "#94a3b8",
+              fontWeight: position === fp ? 700 : 400, textAlign: "center",
+            }}>
+              {FOCAL_LABELS[fp] ?? fp}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Size hint */}
+      <div style={{ background: "#fefce8", border: "1px solid #fde68a", borderRadius: 6, padding: "7px 10px", fontSize: 11, color: "#92400e", lineHeight: 1.6 }}>
+        <strong>Recommended upload size:</strong> {sizeHint}
+      </div>
+    </div>
+  );
+}
+
 type S = Record<string, string>;
 
 export default function PromotionsPage() {
@@ -169,7 +266,9 @@ export default function PromotionsPage() {
         settings.promo_popup_show_once    = p.show_once === false ? "0" : "1";
         settings.promo_popup_delay        = String(p.show_delay ?? 1);
         settings.promo_popup_home_only    = p.home_only === false ? "0" : "1";
-        settings.promo_popup_show_media   = p.show_media === false ? "0" : "1";
+        settings.promo_popup_show_media    = p.show_media === false ? "0" : "1";
+        settings.promo_popup_image_zoom    = String(Number(p.image_zoom) || 100);
+        settings.promo_popup_image_position = String(p.image_position || "center");
         if (p.translations && typeof p.translations === "object") {
           setTranslations(p.translations as Record<string, PopupLangContent>);
         }
@@ -250,7 +349,9 @@ export default function PromotionsPage() {
       show_once:    s.promo_popup_show_once !== "0",
       show_delay:   parseInt(s.promo_popup_delay || "1", 10),
       home_only:    s.promo_popup_home_only !== "0",
-      show_media:   s.promo_popup_show_media !== "0",
+      show_media:     s.promo_popup_show_media !== "0",
+      image_zoom:     parseInt(s.promo_popup_image_zoom || "100", 10),
+      image_position: s.promo_popup_image_position || "center",
       translations,
     };
     const r = await fetch("/api/admin/settings", {
@@ -423,6 +524,19 @@ export default function PromotionsPage() {
                 )}
               </div>
 
+              {/* Zoom / focal point for image popups */}
+              {!isVideo && (
+                <PromoImageZoomPanel
+                  imageUrl={s.promo_popup_media_url || ""}
+                  zoom={parseInt(s.promo_popup_image_zoom || "100", 10)}
+                  position={s.promo_popup_image_position || "center"}
+                  onZoomChange={v => set("promo_popup_image_zoom", String(v))}
+                  onPositionChange={v => set("promo_popup_image_position", v)}
+                  sizeHint="700 × 400 px (16:9) · JPG or WebP · under 500 KB for fast load"
+                  previewAspect="700/400"
+                />
+              )}
+
               {/* Title */}
               <div>
                 <label style={lbl}>Title</label>
@@ -558,14 +672,31 @@ export default function PromotionsPage() {
             </>
           )}
 
-          {/* Info note */}
-          <div style={{ background: "#f5f3ff", borderRadius: 8, padding: "10px 14px", fontSize: 12, color: "#7c3aed", border: "1px solid #ede9fe", display: "flex", alignItems: "flex-start", gap: 8 }}>
-            <Layout size={14} style={{ flexShrink: 0, marginTop: 1 }} />
-            <div>
-              <strong>How it works:</strong> Popup shows after the chosen delay. Needs at least a <strong>Title</strong> or a <strong>media file</strong>.
-              Each language can have its own image/video and text — visitors see the version matching their selected language.
-              To test again, clear <code>promo_popup_seen</code> from browser localStorage.
+          {/* Info note + test button */}
+          <div style={{ display: "flex", gap: 10, alignItems: "flex-start", flexWrap: "wrap" }}>
+            <div style={{ flex: 1, background: "#f5f3ff", borderRadius: 8, padding: "10px 14px", fontSize: 12, color: "#7c3aed", border: "1px solid #ede9fe", display: "flex", alignItems: "flex-start", gap: 8 }}>
+              <Layout size={14} style={{ flexShrink: 0, marginTop: 1 }} />
+              <div>
+                <strong>How it works:</strong> Popup shows after the chosen delay. Needs at least a <strong>Title</strong> or a <strong>media file</strong>.
+                Each language can have its own image/video and text — visitors see the version matching their selected language.
+                If popup was dismissed, use <strong>Test Popup →</strong> to preview it without clearing localStorage.
+              </div>
             </div>
+            <a
+              href="/?test_popup=1"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                display: "inline-flex", alignItems: "center", gap: 6,
+                padding: "9px 16px", borderRadius: 8, whiteSpace: "nowrap",
+                background: "linear-gradient(135deg,#7c3aed,#2070B8)",
+                color: "#fff", fontWeight: 700, fontSize: 12,
+                textDecoration: "none", flexShrink: 0,
+                boxShadow: "0 2px 8px rgba(124,58,237,0.3)",
+              }}
+            >
+              <Eye size={13} /> Test Popup →
+            </a>
           </div>
         </div>
       </div>
@@ -708,10 +839,15 @@ export default function PromotionsPage() {
                             <button type="button" onClick={() => setTab(p => ({ ...p, image_url: "" }))} style={{ padding: "8px 9px", borderRadius: 7, border: "1px solid #fca5a5", background: "#fff1f2", color: "#ef4444", cursor: "pointer", flexShrink: 0 }}><X size={13} /></button>
                           )}
                         </div>
-                        {tab.image_url && (
-                          /* eslint-disable-next-line @next/next/no-img-element */
-                          <img src={tab.image_url} alt="preview" style={{ width: "100%", maxHeight: 160, objectFit: "cover", borderRadius: 8, display: "block", border: "1px solid #e8ecf0" }} onError={e => { (e.currentTarget as HTMLImageElement).style.display = "none"; }} />
-                        )}
+                        <PromoImageZoomPanel
+                          imageUrl={tab.image_url}
+                          zoom={tab.image_zoom ?? 100}
+                          position={tab.image_position ?? "center"}
+                          onZoomChange={v => setTab(p => ({ ...p, image_zoom: v }))}
+                          onPositionChange={v => setTab(p => ({ ...p, image_position: v }))}
+                          sizeHint="560 × 225 px (5:2 ratio) · JPG or WebP · under 200 KB"
+                          previewAspect="560/225"
+                        />
                         {tabImagePicker && (
                           <MediaPickerModal accept="image" onPick={url => { setTab(p => ({ ...p, image_url: url })); setTabImagePicker(false); }} onClose={() => setTabImagePicker(false)} />
                         )}
