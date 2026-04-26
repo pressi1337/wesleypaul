@@ -3,11 +3,12 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   images: {
     remotePatterns: [
-      { protocol: "https", hostname: "wesleypaul.org",  pathname: "/**" },
-      { protocol: "http",  hostname: "wesleypaul.org",  pathname: "/**" },
-      { protocol: "http",  hostname: "localhost",        pathname: "/**" },
-      { protocol: "http",  hostname: "127.0.0.1",        pathname: "/**" },
-      { protocol: "http",  hostname: "91.108.111.40",    pathname: "/**" },
+      { protocol: "https", hostname: "wesleypaul.org", pathname: "/**" },
+      { protocol: "http", hostname: "wesleypaul.org", pathname: "/**" },
+      { protocol: "http", hostname: "localhost", pathname: "/**" },
+      { protocol: "http", hostname: "127.0.0.1", pathname: "/**" },
+      { protocol: "http", hostname: "91.108.111.40", pathname: "/**" },
+      { protocol: "http", hostname: "187.127.251.252", pathname: "/**" },
     ],
   },
   async rewrites() {
@@ -24,9 +25,9 @@ const nextConfig: NextConfig = {
         source: "/(.*)",
         headers: [
           { key: "X-Content-Type-Options", value: "nosniff" },
-          { key: "X-Frame-Options",        value: "SAMEORIGIN" },
-          { key: "X-XSS-Protection",       value: "1; mode=block" },
-          { key: "Referrer-Policy",        value: "strict-origin-when-cross-origin" },
+          { key: "X-Frame-Options", value: "SAMEORIGIN" },
+          { key: "X-XSS-Protection", value: "1; mode=block" },
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
         ],
       },
     ];
