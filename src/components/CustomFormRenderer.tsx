@@ -13,14 +13,20 @@ interface FormField {
   options: string[];
 }
 
+interface StoredTranslation {
+  fields: FormField[];
+  success_message: string;
+}
+
 interface Props {
   formId: number;
   fields: FormField[];
   successMessage: string;
   submitLabel?: string;
+  storedTranslations?: Record<string, StoredTranslation> | null;
 }
 
-export default function CustomFormRenderer({ formId, fields: rawFields, successMessage, submitLabel = "Submit" }: Props) {
+export default function CustomFormRenderer({ formId, fields: rawFields, successMessage, submitLabel = "Submit", storedTranslations }: Props) {
   const [fields, setFields] = useState<FormField[]>(rawFields);
   const [values, setValues] = useState<Record<string, string>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -42,6 +48,13 @@ export default function CustomFormRenderer({ formId, fields: rawFields, successM
     if (lang === "en" || rawFields.length === 0) {
       setFields(rawFields);
       setTranslatedSuccess(successMessage);
+      return;
+    }
+    // Use admin-saved translations if available for this language
+    if (storedTranslations?.[lang]) {
+      const stored = storedTranslations[lang];
+      setFields(stored.fields.length ? stored.fields : rawFields);
+      setTranslatedSuccess(stored.success_message || successMessage);
       return;
     }
 

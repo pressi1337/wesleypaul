@@ -534,10 +534,27 @@ async function CustomFormSection({ content }: { content: Record<string, unknown>
   if (!formId) return null;
   const submitLabel = getString(content, "submit_label") || "Submit";
   interface FormRow { id: number; name: string; fields_json: unknown; success_message: string; }
+  interface TrRow { language_code: string; fields_json: unknown; success_message: string; }
   let form: FormRow | null = null;
+  let storedTranslations: Record<string, { fields: Parameters<typeof CustomFormRenderer>[0]["fields"]; success_message: string }> | null = null;
   try {
     const [rows] = await pool.execute("SELECT id,name,fields_json,success_message FROM forms WHERE id=? LIMIT 1", [formId]);
     form = (rows as FormRow[])[0] ?? null;
+    if (form) {
+      try {
+        const [trRows] = await pool.execute(
+          "SELECT language_code, fields_json, success_message FROM form_translations WHERE form_id = ?",
+          [formId]
+        );
+        const trs: Record<string, { fields: unknown[]; success_message: string }> = {};
+        for (const row of trRows as TrRow[]) {
+          const f = Array.isArray(row.fields_json) ? row.fields_json as unknown[]
+            : (() => { try { return JSON.parse(row.fields_json as string) as unknown[]; } catch { return []; } })();
+          trs[row.language_code] = { fields: f as Parameters<typeof CustomFormRenderer>[0]["fields"], success_message: row.success_message };
+        }
+        if (Object.keys(trs).length > 0) storedTranslations = trs as unknown as typeof storedTranslations;
+      } catch { /* form_translations table may not exist yet */ }
+    }
   } catch { /* DB not ready */ }
   if (!form) return null;
   const fields: unknown[] = Array.isArray(form.fields_json)
@@ -563,6 +580,7 @@ async function CustomFormSection({ content }: { content: Record<string, unknown>
           fields={fields as Parameters<typeof CustomFormRenderer>[0]["fields"]}
           successMessage={form.success_message}
           submitLabel={submitLabel}
+          storedTranslations={storedTranslations}
         />
       </Suspense>
     </div>

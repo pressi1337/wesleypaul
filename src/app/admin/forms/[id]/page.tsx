@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import { ArrowLeft, Save, Trash2, Plus, X } from "lucide-react";
+import { ArrowLeft, Save, Trash2, Plus, X, Languages, CheckCircle, AlertCircle } from "lucide-react";
 
 interface FormField {
   id: string;
@@ -29,6 +29,11 @@ interface Submission {
   created_at: string;
 }
 
+interface LangTranslation {
+  fields: FormField[];
+  success_message: string;
+}
+
 const FIELD_TYPES: Array<{ type: FormField["type"]; label: string; icon: string }> = [
   { type: "text",     label: "Text",      icon: "T" },
   { type: "email",    label: "Email",     icon: "@" },
@@ -40,8 +45,25 @@ const FIELD_TYPES: Array<{ type: FormField["type"]; label: string; icon: string 
   { type: "number",   label: "Number",    icon: "#" },
 ];
 
+interface LangEntry { code: string; label: string; flag: string; }
+
 function generateId() {
   return "f" + Math.random().toString(36).slice(2, 8);
+}
+
+async function translateOne(text: string, target: string): Promise<string> {
+  if (!text.trim()) return text;
+  try {
+    const r = await fetch("/api/admin/translate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text, target }),
+    });
+    const d = await r.json() as { translated?: string };
+    return d.translated || text;
+  } catch {
+    return text;
+  }
 }
 
 export default function FormBuilderPage() {
@@ -51,8 +73,9 @@ export default function FormBuilderPage() {
   const id = params.id as string;
   const isNew = id === "new";
 
-  const [activeTab, setActiveTab] = useState<"builder" | "submissions">(
-    searchParams.get("tab") === "submissions" ? "submissions" : "builder"
+  const [activeTab, setActiveTab] = useState<"builder" | "submissions" | "translations">(
+    searchParams.get("tab") === "submissions" ? "submissions" :
+    searchParams.get("tab") === "translations" ? "translations" : "builder"
   );
 
   const [formData, setFormData] = useState<FormData>({
@@ -67,6 +90,38 @@ export default function FormBuilderPage() {
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState<{ msg: string; type: "success" | "error" } | null>(null);
 
+  // Translations state
+  const [langs, setLangs] = useState<LangEntry[]>([]);
+  const [storedTranslations, setStoredTranslations] = useState<Record<string, LangTranslation>>({});
+  const [selectedLang, setSelectedLang] = useState("");
+  const [currentTranslation, setCurrentTranslation] = useState<LangTranslation | null>(null);
+  const [translating, setTranslating] = useState(false);
+  const [savingTranslation, setSavingTranslation] = useState(false);
+  const [translateProgress, setTranslateProgress] = useState("");
+
+  // Fetch active languages from site settings
+  useEffect(() => {
+    fetch("/api/languages")
+      .then(r => r.json())
+      .then((d: { languages?: { code: string; label: string; nativeLabel?: string; flag: string }[] }) => {
+        if (Array.isArray(d.languages) && d.languages.length > 0) {
+          const mapped: LangEntry[] = d.languages.map(l => ({ code: l.code, label: l.label, flag: l.flag }));
+          setLangs(mapped);
+          setSelectedLang(prev => prev || mapped[0].code);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const loadTranslations = useCallback(async () => {
+    if (isNew) return;
+    try {
+      const r = await fetch(`/api/admin/forms/${id}/translations`);
+      const d = await r.json() as { translations?: Record<string, LangTranslation> };
+      setStoredTranslations(d.translations || {});
+    } catch { /* ignore */ }
+  }, [id, isNew]);
+
   useEffect(() => {
     if (!isNew) {
       fetch(`/api/admin/forms/${id}`)
@@ -75,7 +130,6 @@ export default function FormBuilderPage() {
           const f = (d as { form?: FormData }).form;
           if (f) {
             setFormData(f);
-            // fields_json may come back as an array (mysql2 parses JSON columns) or a string
             const rawFields = f.fields_json as unknown;
             if (Array.isArray(rawFields)) {
               setFields(rawFields as FormField[]);
@@ -88,8 +142,10 @@ export default function FormBuilderPage() {
           setLoading(false);
         })
         .catch(() => setLoading(false));
+
+      void loadTranslations();
     }
-  }, [id, isNew]);
+  }, [id, isNew, loadTranslations]);
 
   useEffect(() => {
     if (!isNew && activeTab === "submissions") {
@@ -98,7 +154,22 @@ export default function FormBuilderPage() {
         .then(d => setSubmissions((d as { submissions: Submission[] }).submissions || []))
         .catch(() => {});
     }
-  }, [id, isNew, activeTab]);
+    if (!isNew && activeTab === "translations") {
+      void loadTranslations();
+    }
+  }, [id, isNew, activeTab, loadTranslations]);
+
+  // Sync selected lang → currentTranslation (load stored or clone from fields)
+  useEffect(() => {
+    if (storedTranslations[selectedLang]) {
+      setCurrentTranslation(storedTranslations[selectedLang]);
+    } else {
+      setCurrentTranslation({
+        fields: fields.map(f => ({ ...f, options: [...f.options] })),
+        success_message: formData.success_message,
+      });
+    }
+  }, [selectedLang, storedTranslations, fields, formData.success_message]);
 
   const showToast = (msg: string, type: "success" | "error" = "success") => {
     setToast({ msg, type });
@@ -146,10 +217,104 @@ export default function FormBuilderPage() {
     setSubmissions(prev => prev.filter(s => s.id !== subId));
   };
 
-  const fs = { width: "100%", padding: "7px 10px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 13, fontFamily: "inherit", outline: "none", boxSizing: "border-box" as const, background: "#fff" };
-  const lb = { display: "block", fontSize: 11, fontWeight: 700, color: "#374151", marginBottom: 4, textTransform: "uppercase" as const, letterSpacing: "0.04em" };
+  const updateTranslationField = (fieldId: string, updates: Partial<FormField>) => {
+    setCurrentTranslation(prev => {
+      if (!prev) return prev;
+      return { ...prev, fields: prev.fields.map(f => f.id === fieldId ? { ...f, ...updates } : f) };
+    });
+  };
+
+  const autoTranslate = async () => {
+    if (!currentTranslation) return;
+    setTranslating(true);
+    setTranslateProgress("Preparing…");
+    const lang = selectedLang;
+    const translated: FormField[] = currentTranslation.fields.map(f => ({ ...f, options: [...f.options] }));
+    let translatedSuccess = currentTranslation.success_message;
+
+    const total = fields.reduce((acc, f) => acc + 2 + f.options.length, 0) + 1;
+    let done = 0;
+    const tick = (label: string) => {
+      done++;
+      setTranslateProgress(`${label} (${done}/${total})`);
+    };
+
+    for (let i = 0; i < fields.length; i++) {
+      const f = fields[i];
+      if (f.label) { translated[i].label = await translateOne(f.label, lang); tick(`Label: ${f.label.slice(0, 20)}`); }
+      else tick("");
+      if (f.placeholder) { translated[i].placeholder = await translateOne(f.placeholder, lang); tick(`Placeholder`); }
+      else tick("");
+      for (let oi = 0; oi < f.options.length; oi++) {
+        if (f.options[oi]) { translated[i].options[oi] = await translateOne(f.options[oi], lang); tick(`Option`); }
+        else tick("");
+      }
+    }
+
+    if (formData.success_message) {
+      translatedSuccess = await translateOne(formData.success_message, lang);
+      tick("Success message");
+    }
+
+    setCurrentTranslation({ fields: translated, success_message: translatedSuccess });
+    setTranslating(false);
+    setTranslateProgress("");
+  };
+
+  const saveTranslation = async () => {
+    if (!currentTranslation) return;
+    setSavingTranslation(true);
+    try {
+      const r = await fetch(`/api/admin/forms/${id}/translations`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          language_code: selectedLang,
+          fields: currentTranslation.fields,
+          success_message: currentTranslation.success_message,
+        }),
+      });
+      const d = await r.json() as { success?: boolean; error?: string };
+      if (d.success) {
+        setStoredTranslations(prev => ({ ...prev, [selectedLang]: currentTranslation }));
+        showToast(`${langs.find(l => l.code === selectedLang)?.label} translation saved!`);
+      } else {
+        showToast(d.error || "Save failed", "error");
+      }
+    } catch {
+      showToast("Save failed", "error");
+    } finally {
+      setSavingTranslation(false);
+    }
+  };
+
+  const clearTranslation = async () => {
+    if (!confirm("Clear this translation?")) return;
+    try {
+      await fetch(`/api/admin/forms/${id}/translations?lang=${selectedLang}`, { method: "DELETE" });
+      setStoredTranslations(prev => { const n = { ...prev }; delete n[selectedLang]; return n; });
+      setCurrentTranslation({
+        fields: fields.map(f => ({ ...f, options: [...f.options] })),
+        success_message: formData.success_message,
+      });
+      showToast("Translation cleared");
+    } catch {
+      showToast("Failed to clear", "error");
+    }
+  };
+
+  const fs: React.CSSProperties = { width: "100%", padding: "7px 10px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 13, fontFamily: "inherit", outline: "none", boxSizing: "border-box", background: "#fff" };
+  const lb: React.CSSProperties = { display: "block", fontSize: 11, fontWeight: 700, color: "#374151", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.04em" };
 
   if (loading) return <div style={{ padding: 40, textAlign: "center", color: "#94a3b8" }}>Loading…</div>;
+
+  const tabs = [
+    { key: "builder" as const, label: "Form Builder" },
+    ...(isNew ? [] : [
+      { key: "translations" as const, label: "Translations" },
+      { key: "submissions" as const, label: "Submissions" },
+    ]),
+  ];
 
   return (
     <div>
@@ -175,20 +340,18 @@ export default function FormBuilderPage() {
       )}
 
       {/* Tabs */}
-      {!isNew && (
-        <div style={{ display: "flex", gap: 2, marginBottom: 20, background: "#f1f5f9", borderRadius: 8, padding: 4, width: "fit-content" }}>
-          {[{ key: "builder" as const, label: "Form Builder" }, { key: "submissions" as const, label: "Submissions" }].map(tab => (
-            <button key={tab.key} onClick={() => setActiveTab(tab.key)}
-              style={{ padding: "6px 16px", borderRadius: 6, border: "none", fontSize: 13, fontWeight: 600, cursor: "pointer", background: activeTab === tab.key ? "#fff" : "transparent", color: activeTab === tab.key ? "#0f172a" : "#64748b", boxShadow: activeTab === tab.key ? "0 1px 3px rgba(0,0,0,0.1)" : "none" }}>
-              {tab.label}
-            </button>
-          ))}
-        </div>
-      )}
+      <div style={{ display: "flex", gap: 2, marginBottom: 20, background: "#f1f5f9", borderRadius: 8, padding: 4, width: "fit-content" }}>
+        {tabs.map(tab => (
+          <button key={tab.key} onClick={() => setActiveTab(tab.key)}
+            style={{ padding: "6px 16px", borderRadius: 6, border: "none", fontSize: 13, fontWeight: 600, cursor: "pointer", background: activeTab === tab.key ? "#fff" : "transparent", color: activeTab === tab.key ? "#0f172a" : "#64748b", boxShadow: activeTab === tab.key ? "0 1px 3px rgba(0,0,0,0.1)" : "none" }}>
+            {tab.label}
+          </button>
+        ))}
+      </div>
 
+      {/* ── Builder Tab ─────────────────────────────────────────────────────── */}
       {activeTab === "builder" && (
         <div style={{ display: "grid", gridTemplateColumns: "1fr 260px", gap: 20 }}>
-          {/* Left: form fields */}
           <div>
             <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", padding: 20, marginBottom: 16 }}>
               <div style={{ marginBottom: 12 }}>
@@ -235,12 +398,8 @@ export default function FormBuilderPage() {
                       {field.options.map((opt, oi) => (
                         <div key={oi} style={{ display: "flex", gap: 6, marginBottom: 5 }}>
                           <input style={{ ...fs, flex: 1 }} value={opt}
-                            onChange={e => {
-                              const opts = [...field.options];
-                              opts[oi] = e.target.value;
-                              updateField(field.id, { options: opts });
-                            }} />
-                          <button onClick={() => { const opts = field.options.filter((_, i) => i !== oi); updateField(field.id, { options: opts }); }}
+                            onChange={e => { const opts = [...field.options]; opts[oi] = e.target.value; updateField(field.id, { options: opts }); }} />
+                          <button onClick={() => updateField(field.id, { options: field.options.filter((_, i) => i !== oi) })}
                             style={{ padding: "4px 8px", background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 5, color: "#C0185A", cursor: "pointer", fontSize: 11 }}>✕</button>
                         </div>
                       ))}
@@ -279,6 +438,191 @@ export default function FormBuilderPage() {
         </div>
       )}
 
+      {/* ── Translations Tab ────────────────────────────────────────────────── */}
+      {activeTab === "translations" && langs.length === 0 && (
+        <div style={{ padding: "40px 0", textAlign: "center", color: "#94a3b8", fontSize: 13 }}>Loading languages…</div>
+      )}
+      {activeTab === "translations" && langs.length > 0 && (
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 220px", gap: 20, alignItems: "start" }}>
+          {/* Main translation editor */}
+          <div>
+            {/* Language bar */}
+            <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", padding: 16, marginBottom: 16, display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+              <Languages size={16} style={{ color: "#64748b", flexShrink: 0 }} />
+              <span style={{ fontSize: 13, fontWeight: 600, color: "#64748b", marginRight: 4 }}>Language:</span>
+              {langs.map(l => {
+                const saved = !!storedTranslations[l.code];
+                const active = selectedLang === l.code;
+                return (
+                  <button key={l.code} onClick={() => setSelectedLang(l.code)}
+                    style={{
+                      display: "flex", alignItems: "center", gap: 6, padding: "7px 14px",
+                      borderRadius: 7, border: `2px solid ${active ? "#2070B8" : "#e2e8f0"}`,
+                      background: active ? "#eff6ff" : "#f8fafc",
+                      color: active ? "#2070B8" : "#374151",
+                      fontSize: 13, fontWeight: 700, cursor: "pointer",
+                    }}>
+                    <span>{l.flag}</span>
+                    {l.label}
+                    {saved && <CheckCircle size={12} style={{ color: "#16a34a" }} />}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Translation fields */}
+            {currentTranslation && (
+              <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", padding: 20 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18, gap: 10, flexWrap: "wrap" }}>
+                  <div>
+                    <h3 style={{ fontSize: 14, fontWeight: 700, color: "#0f172a", margin: 0 }}>
+                      {langs.find(l => l.code === selectedLang)?.flag} {langs.find(l => l.code === selectedLang)?.label} Translation
+                    </h3>
+                    <p style={{ fontSize: 12, color: "#94a3b8", margin: "4px 0 0" }}>
+                      Edit translations manually or click Auto Translate to fill all fields automatically.
+                    </p>
+                  </div>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    {storedTranslations[selectedLang] && (
+                      <button onClick={clearTranslation}
+                        style={{ padding: "7px 14px", background: "#fef2f2", color: "#C0185A", border: "1px solid #fecaca", borderRadius: 7, cursor: "pointer", fontSize: 12, fontWeight: 600 }}>
+                        Clear
+                      </button>
+                    )}
+                    <button onClick={autoTranslate} disabled={translating}
+                      style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 16px", background: translating ? "#94a3b8" : "#7c3aed", color: "#fff", border: "none", borderRadius: 7, cursor: translating ? "not-allowed" : "pointer", fontSize: 13, fontWeight: 600 }}>
+                      <Languages size={14} />
+                      {translating ? "Translating…" : "Auto Translate"}
+                    </button>
+                    <button onClick={saveTranslation} disabled={savingTranslation}
+                      style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 16px", background: savingTranslation ? "#94a3b8" : "#16a34a", color: "#fff", border: "none", borderRadius: 7, cursor: savingTranslation ? "not-allowed" : "pointer", fontSize: 13, fontWeight: 600 }}>
+                      <Save size={14} />
+                      {savingTranslation ? "Saving…" : "Save"}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Progress bar */}
+                {translateProgress && (
+                  <div style={{ marginBottom: 16, padding: "10px 14px", background: "#faf5ff", border: "1px solid #e9d5ff", borderRadius: 8, fontSize: 12.5, color: "#7c3aed", display: "flex", alignItems: "center", gap: 8 }}>
+                    <span style={{ fontSize: 16 }}>🔄</span>
+                    {translateProgress}
+                  </div>
+                )}
+
+                {/* Original vs Translation comparison */}
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 10, paddingBottom: 10, borderBottom: "1px solid #f1f5f9" }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase" as const, letterSpacing: "0.06em" }}>🇺🇸 Original (English)</div>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: "#2070B8", textTransform: "uppercase" as const, letterSpacing: "0.06em" }}>
+                    {langs.find(l => l.code === selectedLang)?.flag} {langs.find(l => l.code === selectedLang)?.label}
+                  </div>
+                </div>
+
+                {currentTranslation.fields.map((trField, i) => {
+                  const origField = fields[i];
+                  if (!origField) return null;
+                  return (
+                    <div key={trField.id} style={{ marginBottom: 16, paddingBottom: 16, borderBottom: "1px solid #f1f5f9" }}>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: "#64748b", background: "#f1f5f9", padding: "3px 8px", borderRadius: 4, display: "inline-block", marginBottom: 8 }}>
+                        {origField.type.toUpperCase()} #{i + 1}
+                      </div>
+                      {/* Label */}
+                      {origField.label && (
+                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 6 }}>
+                          <div>
+                            <label style={lb}>Label</label>
+                            <div style={{ padding: "7px 10px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 13, background: "#f8fafc", color: "#64748b" }}>{origField.label}</div>
+                          </div>
+                          <div>
+                            <label style={{ ...lb, color: "#2070B8" }}>Label</label>
+                            <input style={fs} value={trField.label} onChange={e => updateTranslationField(trField.id, { label: e.target.value })} />
+                          </div>
+                        </div>
+                      )}
+                      {/* Placeholder */}
+                      {origField.placeholder && (
+                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 6 }}>
+                          <div>
+                            <label style={lb}>Placeholder</label>
+                            <div style={{ padding: "7px 10px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 13, background: "#f8fafc", color: "#64748b" }}>{origField.placeholder}</div>
+                          </div>
+                          <div>
+                            <label style={{ ...lb, color: "#2070B8" }}>Placeholder</label>
+                            <input style={fs} value={trField.placeholder} onChange={e => updateTranslationField(trField.id, { placeholder: e.target.value })} />
+                          </div>
+                        </div>
+                      )}
+                      {/* Select options */}
+                      {origField.type === "select" && origField.options.length > 0 && (
+                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                          <div>
+                            <label style={lb}>Options</label>
+                            {origField.options.map((opt, oi) => (
+                              <div key={oi} style={{ padding: "5px 10px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 12.5, background: "#f8fafc", color: "#64748b", marginBottom: 4 }}>{opt}</div>
+                            ))}
+                          </div>
+                          <div>
+                            <label style={{ ...lb, color: "#2070B8" }}>Options</label>
+                            {(trField.options.length ? trField.options : origField.options).map((opt, oi) => (
+                              <input key={oi} style={{ ...fs, marginBottom: 4, fontSize: 12.5 }}
+                                value={trField.options[oi] ?? opt}
+                                onChange={e => {
+                                  const opts = [...(trField.options.length ? trField.options : origField.options)];
+                                  opts[oi] = e.target.value;
+                                  updateTranslationField(trField.id, { options: opts });
+                                }} />
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+
+                {/* Success message */}
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                  <div>
+                    <label style={lb}>Success Message</label>
+                    <div style={{ padding: "7px 10px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 13, background: "#f8fafc", color: "#64748b", minHeight: 64, lineHeight: 1.6 }}>{formData.success_message}</div>
+                  </div>
+                  <div>
+                    <label style={{ ...lb, color: "#2070B8" }}>Success Message</label>
+                    <textarea
+                      style={{ ...fs, minHeight: 64, resize: "vertical" }}
+                      value={currentTranslation.success_message}
+                      onChange={e => setCurrentTranslation(prev => prev ? { ...prev, success_message: e.target.value } : prev)}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Right sidebar: language status */}
+          <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", padding: 16, position: "sticky", top: 20 }}>
+            <h3 style={{ fontSize: 12, fontWeight: 700, color: "#64748b", textTransform: "uppercase" as const, letterSpacing: "0.05em", marginBottom: 12 }}>Translation Status</h3>
+            {langs.map(l => {
+              const saved = !!storedTranslations[l.code];
+              return (
+                <div key={l.code} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 0", borderBottom: "1px solid #f1f5f9" }}>
+                  <span>{l.flag}</span>
+                  <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: "#374151" }}>{l.label}</span>
+                  {saved
+                    ? <CheckCircle size={14} style={{ color: "#16a34a" }} />
+                    : <AlertCircle size={14} style={{ color: "#f59e0b" }} />
+                  }
+                  <span style={{ fontSize: 11, color: saved ? "#16a34a" : "#f59e0b", fontWeight: 600 }}>{saved ? "Saved" : "None"}</span>
+                </div>
+              );
+            })}
+            <div style={{ marginTop: 14, padding: "10px 12px", background: "#fafafa", border: "1px solid #f1f5f9", borderRadius: 8, fontSize: 11.5, color: "#64748b", lineHeight: 1.6 }}>
+              Saved translations are used on the public site. If no translation is saved, the site translates automatically on the fly.
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Submissions Tab ─────────────────────────────────────────────────── */}
       {activeTab === "submissions" && (
         <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", overflow: "hidden" }}>
           {submissions.length === 0 ? (
