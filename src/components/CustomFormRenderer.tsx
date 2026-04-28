@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, FormEvent } from "react";
+import { useState, useEffect, useRef, FormEvent } from "react";
 import { useSearchParams } from "next/navigation";
 import { translateBatch } from "@/lib/translate-client";
 
@@ -27,6 +27,11 @@ export default function CustomFormRenderer({ formId, fields: rawFields, successM
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [translatedSuccess, setTranslatedSuccess] = useState(successMessage);
+  const successRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (submitted) successRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, [submitted]);
 
   // Detect language from URL
   const searchParams = useSearchParams();
@@ -133,7 +138,7 @@ export default function CustomFormRenderer({ formId, fields: rawFields, successM
 
   if (submitted) {
     return (
-      <div style={{ padding: "40px 24px", textAlign: "center", background: "#f0fdf4", borderRadius: 12, border: "1px solid #bbf7d0" }}>
+      <div ref={successRef} style={{ padding: "40px 24px", textAlign: "center", background: "#f0fdf4", borderRadius: 12, border: "1px solid #bbf7d0" }}>
         <div style={{ fontSize: 40, marginBottom: 12 }}>✓</div>
         <p style={{ fontSize: 18, fontWeight: 700, color: "#15803d", marginBottom: 8 }}>Submitted!</p>
         <p style={{ color: "#374151", fontSize: 15 }}>{translatedSuccess}</p>

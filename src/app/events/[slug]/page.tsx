@@ -1,4 +1,4 @@
-export const revalidate = 60;
+export const dynamic = "force-dynamic";
 
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
@@ -6,6 +6,7 @@ import Image from "next/image";
 import ContactFormClient from "@/components/ContactFormClient";
 import BookingFormClient from "@/components/BookingFormClient";
 import CustomFormRenderer from "@/components/CustomFormRenderer";
+import VideoGridClient from "@/components/VideoGridClient";
 import pool from "@/lib/db";
 import { SUPPORTED_LANG_CODES } from "@/lib/languages";
 
@@ -129,6 +130,16 @@ function TextSection({ content }: { content: Record<string, unknown> }) {
 }
 
 interface CardItem { title?: string; description?: string; color?: string; }
+function extractEmoji(title: string): { emoji: string; rest: string } {
+  const m = title.match(/^(\p{Emoji_Presentation}|\p{Extended_Pictographic})\s*/u);
+  return m ? { emoji: m[1], rest: title.slice(m[0].length) } : { emoji: "", rest: title };
+}
+function injectLinkStyles(html: string): string {
+  return html
+    .replace(/<a\s/gi, '<a style="color:#2070B8;text-decoration:underline;text-underline-offset:3px;font-weight:600;" ')
+    .replace(/<ul/gi, '<ul style="list-style:disc;padding-left:18px;margin:0 0 4px;"')
+    .replace(/<ol/gi, '<ol style="list-style:decimal;padding-left:18px;margin:0 0 4px;"');
+}
 function CardsGridSection({ content }: { content: Record<string, unknown> }) {
   const heading = getString(content, "heading"), subtitle = getString(content, "subtitle");
   const bgLight = content["bg_light"] !== false;
@@ -144,17 +155,27 @@ function CardsGridSection({ content }: { content: Record<string, unknown> }) {
           </div>
         )}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%,280px),1fr))", gap: "2rem" }}>
-          {items.map((item, i) => (
-            <div key={i} style={{ display: "flex", gap: 20, padding: "28px", background: "#fff", borderRadius: 8, boxShadow: "0 2px 12px rgba(0,0,0,0.07)", borderLeft: `4px solid ${item.color || "#2070B8"}` }}>
-              <div style={{ width: 44, height: 44, borderRadius: 8, background: item.color || "#2070B8", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                <span style={{ color: "#fff", fontWeight: 800, fontSize: 18 }}>✦</span>
+          {items.map((item, i) => {
+            const accent = item.color || "#2070B8";
+            const { emoji, rest } = item.title ? extractEmoji(item.title) : { emoji: "", rest: "" };
+            return (
+              <div key={i} style={{ background: "#fff", borderRadius: 10, boxShadow: "0 2px 14px rgba(0,0,0,0.08)", overflow: "hidden", display: "flex", flexDirection: "column" }}>
+                <div style={{ height: 6, backgroundColor: accent }} />
+                <div style={{ padding: "24px 24px 28px", flex: 1 }}>
+                  {item.title && (
+                    <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
+                      {emoji && <span style={{ fontSize: 22, lineHeight: 1 }}>{emoji}</span>}
+                      <h3 style={{ fontSize: 15, fontWeight: 700, color: "#0f172a", margin: 0, lineHeight: 1.3 }}>{rest || item.title}</h3>
+                    </div>
+                  )}
+                  {item.description && (
+                    <div style={{ color: "#6c757d", fontSize: 14, lineHeight: 1.75 }}
+                      dangerouslySetInnerHTML={{ __html: injectLinkStyles(item.description) }} />
+                  )}
+                </div>
               </div>
-              <div>
-                {item.title && <h3 style={{ fontSize: 15, fontWeight: 700, color: "#2070B8", marginBottom: 8 }}>{item.title}</h3>}
-                {item.description && <div style={{ color: "#6c757d", fontSize: 14, lineHeight: 1.75 }} dangerouslySetInnerHTML={{ __html: item.description }} />}
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </section>
@@ -478,6 +499,15 @@ function DonateStripSection({ content }: { content: Record<string, unknown> }) {
   );
 }
 
+interface VideoItem { url?: string; title?: string; thumbnail?: string; }
+function VideoGridSection({ content }: { content: Record<string, unknown> }) {
+  const heading = getString(content, "heading");
+  const subtitle = getString(content, "subtitle");
+  const bgLight = content["bg_light"] !== false;
+  const videos = getArray<VideoItem>(content, "videos");
+  return <VideoGridClient videos={videos} heading={heading} subtitle={subtitle} bgLight={bgLight} />;
+}
+
 function renderSection(section: Section) {
   const content = parseContent(section.content_json);
   switch (section.section_type) {
@@ -496,6 +526,7 @@ function renderSection(section: Section) {
     case "latest_posts": return <LatestPostsSection key={section.id} content={content} />;
     case "custom_form":  return <CustomFormSection key={section.id} content={content} />;
     case "donate_strip": return <DonateStripSection key={section.id} content={content} />;
+    case "video_grid":   return <VideoGridSection key={section.id} content={content} />;
     default:             return null;
   }
 }

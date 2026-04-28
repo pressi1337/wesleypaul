@@ -3,6 +3,9 @@ import { getAdminFromRequest } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
 import bcrypt from "bcryptjs";
 import { execSync } from "child_process";
+import { writeFileSync, unlinkSync } from "fs";
+import { tmpdir } from "os";
+import { join } from "path";
 
 export const dynamic = "force-dynamic";
 
@@ -47,11 +50,24 @@ export async function POST(request: Request) {
     const database = process.env.DB_NAME     || "wesleypaul_cms";
     const port     = process.env.DB_PORT     || "3306";
 
-    execSync(`mysql -h${host} -P${port} -u${user} ${database}`, {
-      input: sqlBuf,
-      env: { ...process.env, MYSQL_PWD: dbPass },
-      maxBuffer: 200 * 1024 * 1024,
-    });
+    // Fix mysqldump compatibility: wrap bare function-call DEFAULTs in parens
+    // e.g.  DEFAULT json_array()  →  DEFAULT (json_array())
+    // MySQL 8.0 requires parens around expression defaults; older dumps omit them.
+    let sql = sqlBuf.toString("utf8");
+    sql = sql.replace(/\bDEFAULT\s+([a-zA-Z_][a-zA-Z0-9_]*\([^)]*\))/g, "DEFAULT ($1)");
+    const fixedBuf = Buffer.from(sql, "utf8");
+
+    const tmpFile = join(tmpdir(), `restore_${Date.now()}.sql`);
+    try {
+      writeFileSync(tmpFile, fixedBuf);
+      execSync(`mysql -h${host} -P${port} -u${user} ${database} < ${tmpFile}`, {
+        env: { ...process.env, MYSQL_PWD: dbPass },
+        maxBuffer: 200 * 1024 * 1024,
+        shell: "/bin/sh",
+      });
+    } finally {
+      try { unlinkSync(tmpFile); } catch { /* ignore cleanup failure */ }
+    }
 
     await logAudit(request, "restore_mysql", "database", database, `Restored DB from ${file.name} (${(file.size / 1024).toFixed(1)} KB)`);
     return Response.json({ success: true });

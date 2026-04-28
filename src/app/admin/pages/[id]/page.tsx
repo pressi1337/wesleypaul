@@ -118,6 +118,7 @@ const SECTION_TYPES = [
   { value: "latest_posts", label: "Latest Posts",   color: "#7c3aed", icon: "📰", desc: "Auto-fetching grid of recent blog, news or event posts" },
   { value: "custom_form",  label: "Custom Form",    color: "#0a7c52", icon: "📋", desc: "Embed a form built in the Form Builder" },
   { value: "donate_strip", label: "Donate Strip",   color: "#1B3A76", icon: "💛", desc: "Full-width banner with text and a Give Now button" },
+  { value: "video_grid",   label: "Video Grid",     color: "#0f172a", icon: "🎬", desc: "Side-by-side local MP4 video players with titles" },
 ];
 
 // ── Focal point grid constants ────────────────────────────────────────────────
@@ -456,7 +457,229 @@ function PageImageControlPanel({
   );
 }
 
-// ── Section preview (themed, matches real site) ──────────────────────────────
+// ── VideoMediaPicker ──────────────────────────────────────────────────────────
+function VideoMediaPicker({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const [videos, setVideos] = useState<MediaItem[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState("");
+  const fileRef = useRef<HTMLInputElement>(null);
+  const fs: React.CSSProperties = { width: "100%", padding: "6px 9px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 12, fontFamily: "inherit", outline: "none", boxSizing: "border-box", background: "#fff" };
+
+  const loadVideos = async () => {
+    const r = await fetch("/api/admin/media");
+    const d = await r.json() as { media: MediaItem[] };
+    setVideos((d.media || []).filter(m => m.mime_type?.startsWith("video/") || /\.(mp4|webm|mov)$/i.test(m.file_path)));
+  };
+
+  const uploadVideo = async (file: File) => {
+    if (!file.type.startsWith("video/")) { setUploadError("Please select a video file (MP4, WebM)."); return; }
+    if (file.size > 200 * 1024 * 1024) { setUploadError("File too large (max 200 MB)."); return; }
+    setUploading(true); setUploadError("");
+    const fd = new FormData(); fd.append("file", file);
+    try {
+      const r = await fetch("/api/admin/media", { method: "POST", body: fd });
+      const d = await r.json() as { success?: boolean; media?: MediaItem; error?: string };
+      if (d.success && d.media) { onChange(d.media.file_path); setOpen(false); }
+      else setUploadError(d.error || "Upload failed");
+    } catch { setUploadError("Upload failed"); }
+    setUploading(false);
+  };
+
+  return (
+    <div>
+      <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+        <input style={{ ...fs, flex: 1 }} value={value} onChange={e => onChange(e.target.value)} placeholder="/uploads/video.mp4" />
+        <button type="button" onClick={async () => { setOpen(true); await loadVideos(); }}
+          style={{ padding: "6px 10px", background: "#0f172a", color: "#fff", border: "none", borderRadius: 6, cursor: "pointer", fontSize: 12, fontWeight: 600, whiteSpace: "nowrap" }}>
+          🎬 Library
+        </button>
+      </div>
+      {value && <video src={value} style={{ width: "100%", marginTop: 8, borderRadius: 6, maxHeight: 120, background: "#000" }} controls preload="metadata" />}
+
+      {open && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <div style={{ background: "#fff", borderRadius: 12, width: "min(680px,95vw)", maxHeight: "85vh", display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "0 24px 60px rgba(0,0,0,0.25)" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 20px", borderBottom: "1px solid #e2e8f0" }}>
+              <span style={{ fontWeight: 700, fontSize: 15 }}>🎬 Video Library</span>
+              <button onClick={() => setOpen(false)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 18, color: "#64748b" }}>✕</button>
+            </div>
+            <div style={{ padding: "16px 20px", borderBottom: "1px solid #f1f5f9", display: "flex", gap: 8, alignItems: "center" }}>
+              <input ref={fileRef} type="file" accept="video/*" style={{ display: "none" }} onChange={e => { const f = e.target.files?.[0]; if (f) void uploadVideo(f); e.target.value = ""; }} />
+              <button onClick={() => fileRef.current?.click()} disabled={uploading}
+                style={{ padding: "7px 14px", background: "#0f172a", color: "#fff", border: "none", borderRadius: 7, cursor: "pointer", fontSize: 12, fontWeight: 600 }}>
+                {uploading ? "Uploading…" : "⬆ Upload Video"}
+              </button>
+              {uploadError && <span style={{ fontSize: 12, color: "#C0185A" }}>{uploadError}</span>}
+            </div>
+            <div style={{ padding: 16, overflowY: "auto", flex: 1 }}>
+              {videos.length === 0 ? (
+                <div style={{ textAlign: "center", color: "#94a3b8", padding: "40px 0", fontSize: 13 }}>No videos in library yet — upload one above</div>
+              ) : (
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(180px,1fr))", gap: 10 }}>
+                  {videos.map(v => (
+                    <div key={v.id} onClick={() => { onChange(v.file_path); setOpen(false); }}
+                      style={{ borderRadius: 8, overflow: "hidden", border: value === v.file_path ? "2px solid #2070B8" : "1px solid #e2e8f0", cursor: "pointer", background: "#000" }}>
+                      <video src={v.file_path} style={{ width: "100%", height: 100, objectFit: "cover", display: "block" }} preload="metadata" />
+                      <div style={{ padding: "6px 8px", background: "#fff", fontSize: 10, color: "#475569", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {v.original_name || v.filename}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Video thumbnail helpers ───────────────────────────────────────────────────
+async function extractVideoThumbnail(videoUrl: string): Promise<string | null> {
+  return new Promise((resolve) => {
+    const video = document.createElement("video");
+    video.crossOrigin = "anonymous";
+    video.preload = "metadata";
+    video.muted = true;
+    video.addEventListener("seeked", async () => {
+      try {
+        const canvas = document.createElement("canvas");
+        canvas.width = video.videoWidth || 640;
+        canvas.height = video.videoHeight || 360;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) { resolve(null); return; }
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        canvas.toBlob(async (blob) => {
+          if (!blob) { resolve(null); return; }
+          const fd = new FormData();
+          fd.append("file", new File([blob], "thumbnail.jpg", { type: "image/jpeg" }));
+          try {
+            const r = await fetch("/api/admin/media", { method: "POST", body: fd });
+            const d = await r.json() as { success?: boolean; media?: { file_path: string } };
+            resolve(d.success && d.media ? d.media.file_path : null);
+          } catch { resolve(null); }
+        }, "image/jpeg", 0.85);
+      } catch { resolve(null); }
+    }, { once: true });
+    video.addEventListener("loadedmetadata", () => {
+      video.currentTime = Math.min(1, video.duration > 0 ? video.duration * 0.1 : 1);
+    }, { once: true });
+    video.addEventListener("error", () => resolve(null), { once: true });
+    video.src = videoUrl;
+    video.load();
+  });
+}
+
+function VideoThumbnailPicker({ value, videoUrl, onChange }: { value: string; videoUrl: string; onChange: (v: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const [extracting, setExtracting] = useState(false);
+  const [extractError, setExtractError] = useState("");
+  const [media, setMedia] = useState<MediaItem[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const [uploadErr, setUploadErr] = useState("");
+  const fileRef = useRef<HTMLInputElement>(null);
+  const fs: React.CSSProperties = { width: "100%", padding: "6px 9px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 12, fontFamily: "inherit", outline: "none", boxSizing: "border-box", background: "#fff" };
+
+  const loadImages = async () => {
+    const r = await fetch("/api/admin/media");
+    const d = await r.json() as { media: MediaItem[] };
+    setMedia((d.media || []).filter(m => !m.mime_type || m.mime_type.startsWith("image/")));
+  };
+
+  const autoExtract = async () => {
+    if (!videoUrl) { setExtractError("Add a video first."); return; }
+    setExtracting(true); setExtractError("");
+    const url = await extractVideoThumbnail(videoUrl);
+    setExtracting(false);
+    if (url) { onChange(url); }
+    else setExtractError("Could not extract thumbnail — try a custom image.");
+  };
+
+  const uploadFile = async (file: File) => {
+    if (!file.type.startsWith("image/")) { setUploadErr("Images only."); return; }
+    setUploading(true); setUploadErr("");
+    const fd = new FormData(); fd.append("file", file);
+    try {
+      const r = await fetch("/api/admin/media", { method: "POST", body: fd });
+      const d = await r.json() as { success?: boolean; media?: MediaItem; error?: string };
+      if (d.success && d.media) { onChange(d.media.file_path); setOpen(false); }
+      else setUploadErr(d.error || "Upload failed");
+    } catch { setUploadErr("Upload failed"); }
+    setUploading(false);
+  };
+
+  return (
+    <div>
+      <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+        {value
+          ? <img src={value} alt="thumbnail" style={{ height: 48, borderRadius: 5, objectFit: "cover", border: "1px solid #e2e8f0" }} />
+          : <div style={{ height: 48, width: 72, borderRadius: 5, background: "#1e293b", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, border: "1px solid #e2e8f0" }}>🎬</div>
+        }
+        <button type="button" onClick={autoExtract} disabled={extracting || !videoUrl}
+          style={{ padding: "5px 10px", background: extracting ? "#94a3b8" : "#0f172a", color: "#fff", border: "none", borderRadius: 6, cursor: extracting || !videoUrl ? "not-allowed" : "pointer", fontSize: 11, fontWeight: 600 }}>
+          {extracting ? "Extracting…" : "⚡ Auto"}
+        </button>
+        <button type="button" onClick={async () => { setOpen(true); await loadImages(); }}
+          style={{ padding: "5px 10px", background: "#2070B8", color: "#fff", border: "none", borderRadius: 6, cursor: "pointer", fontSize: 11, fontWeight: 600 }}>
+          📷 Pick Image
+        </button>
+        {value && (
+          <button type="button" onClick={() => onChange("")}
+            style={{ padding: "5px 8px", background: "none", border: "1px solid #e2e8f0", borderRadius: 6, cursor: "pointer", fontSize: 11, color: "#C0185A" }}>
+            ✕
+          </button>
+        )}
+      </div>
+      {extractError && <div style={{ fontSize: 11, color: "#C0185A", marginTop: 4 }}>{extractError}</div>}
+
+      {open && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <div style={{ background: "#fff", borderRadius: 12, width: "min(680px,95vw)", maxHeight: "85vh", display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "0 24px 60px rgba(0,0,0,0.25)" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 20px", borderBottom: "1px solid #e2e8f0" }}>
+              <span style={{ fontWeight: 700, fontSize: 15 }}>📷 Choose Thumbnail</span>
+              <button onClick={() => setOpen(false)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 18, color: "#64748b" }}>✕</button>
+            </div>
+            <div style={{ padding: "12px 20px", borderBottom: "1px solid #f1f5f9", display: "flex", gap: 8, alignItems: "center" }}>
+              <input ref={fileRef} type="file" accept="image/*" style={{ display: "none" }} onChange={e => { const f = e.target.files?.[0]; if (f) void uploadFile(f); e.target.value = ""; }} />
+              <button onClick={() => fileRef.current?.click()} disabled={uploading}
+                style={{ padding: "7px 14px", background: "#0f172a", color: "#fff", border: "none", borderRadius: 7, cursor: "pointer", fontSize: 12, fontWeight: 600 }}>
+                {uploading ? "Uploading…" : "⬆ Upload Image"}
+              </button>
+              {uploadErr && <span style={{ fontSize: 12, color: "#C0185A" }}>{uploadErr}</span>}
+            </div>
+            <div style={{ padding: 16, overflowY: "auto", flex: 1 }}>
+              {media.length === 0
+                ? <div style={{ textAlign: "center", color: "#94a3b8", padding: "40px 0", fontSize: 13 }}>No images in library yet</div>
+                : (
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(140px,1fr))", gap: 10 }}>
+                    {media.map(m => (
+                      <div key={m.id} onClick={() => { onChange(m.file_path); setOpen(false); }}
+                        style={{ borderRadius: 8, overflow: "hidden", border: value === m.file_path ? "2px solid #2070B8" : "1px solid #e2e8f0", cursor: "pointer" }}>
+                        <img src={m.file_path} alt={m.alt_text || m.original_name} style={{ width: "100%", height: 90, objectFit: "cover", display: "block" }} />
+                        <div style={{ padding: "4px 6px", fontSize: 10, color: "#475569", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          {m.original_name || m.filename}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )
+              }
+            </div>
+            <div style={{ padding: "12px 20px", borderTop: "1px solid #e2e8f0" }}>
+              <div style={{ display: "flex", gap: 6 }}>
+                <input style={{ ...fs, flex: 1 }} placeholder="Or paste image URL…" onBlur={e => { if (e.target.value) { onChange(e.target.value); setOpen(false); } }} />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Section preview (themed, matches real site) ───────────────────────────────
 // Computes wrapper style when a section has a custom bg_image set
 function bgWrapStyle(c: Record<string, unknown>): React.CSSProperties | null {
   const img = getString(c, "bg_image");
@@ -865,6 +1088,43 @@ function SectionPreview({ sec, translatedJson, previewDevice = "desktop" }: { se
             </div>
           )}
         </div>
+      </div>
+    );
+  }
+
+  if (sec.section_type === "video_grid") {
+    const heading  = getString(c, "heading") || "Video Grid";
+    const subtitle = getString(c, "subtitle");
+    const bgLight  = c["bg_light"] !== false;
+    const videos   = Array.isArray(c.videos) ? (c.videos as { url?: string; title?: string; thumbnail?: string }[]) : [];
+    return (
+      <div style={{ padding: "36px 28px", background: bgLight ? "#f8f9fa" : "#0a1523" }}>
+        <div style={{ textAlign: "center", marginBottom: 24 }}>
+          <h2 style={{ fontSize: 22, fontWeight: 700, color: bgLight ? "#2070B8" : "#fff", marginBottom: 8 }}>{heading}</h2>
+          {subtitle && <p style={{ fontSize: 13, color: bgLight ? "#6c757d" : "rgba(255,255,255,0.65)", margin: 0 }}>{subtitle}</p>}
+        </div>
+        {videos.length === 0 ? (
+          <div style={{ textAlign: "center", color: "#94a3b8", fontSize: 13, padding: "20px 0" }}>No videos added yet</div>
+        ) : (
+          <div style={{ display: "grid", gridTemplateColumns: videos.length === 1 ? "1fr" : "1fr 1fr", gap: 16 }}>
+            {videos.map((v, i) => (
+              <div key={i} style={{ borderRadius: 10, overflow: "hidden", background: "#000", boxShadow: "0 4px 16px rgba(0,0,0,0.2)" }}>
+                <div style={{ position: "relative", aspectRatio: "16/9" }}>
+                  {v.thumbnail
+                    ? <img src={v.thumbnail} alt={v.title || "Video"} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+                    : <div style={{ width: "100%", height: "100%", background: "#1e293b", display: "flex", alignItems: "center", justifyContent: "center" }}><span style={{ fontSize: 32, opacity: 0.4 }}>🎬</span></div>
+                  }
+                  <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.25)" }}>
+                    <div style={{ width: 44, height: 44, borderRadius: "50%", background: "#C0185A", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      <span style={{ color: "#fff", fontSize: 16, marginLeft: 3 }}>▶</span>
+                    </div>
+                  </div>
+                </div>
+                {v.title && <div style={{ padding: "8px 12px", background: bgLight ? "#fff" : "#111827", fontSize: 12, fontWeight: 600, color: bgLight ? "#1e293b" : "#e2e8f0" }}>{v.title}</div>}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     );
   }
@@ -1377,6 +1637,63 @@ function SectionEditor({ sec, onUpdate }: { sec: Section; onUpdate: (sec: Sectio
       </div>
     </div>
   );
+
+  if (sec.section_type === "video_grid") {
+    const videos = Array.isArray(content.videos) ? (content.videos as { url: string; title: string; thumbnail?: string }[]) : [];
+    const bgLight = content["bg_light"] !== false;
+    return (
+      <div>
+        <div style={row}><label style={lb}>Heading</label>
+          <input style={fs} value={getString(content, "heading")} onChange={e => set("heading", e.target.value)} placeholder="Event Highlights" />
+        </div>
+        <div style={row}><label style={lb}>Subtitle</label>
+          <input style={fs} value={getString(content, "subtitle")} onChange={e => set("subtitle", e.target.value)} placeholder="Short description…" />
+        </div>
+        <div style={{ ...row, display: "flex", alignItems: "center", gap: 10 }}>
+          <label style={{ ...lb, margin: 0 }}>Background</label>
+          <div style={{ display: "flex", gap: 6 }}>
+            {([["true", "⬜ Light"] , ["false", "⬛ Dark"]] as const).map(([val, label]) => (
+              <button key={val} type="button" onClick={() => set("bg_light", val === "true")}
+                style={{ padding: "5px 12px", borderRadius: 6, border: "1px solid", fontSize: 11, fontWeight: 700, cursor: "pointer",
+                  borderColor: String(bgLight) === val ? "#2070B8" : "#e2e8f0",
+                  background: String(bgLight) === val ? "#eff6ff" : "#fff",
+                  color: String(bgLight) === val ? "#2070B8" : "#64748b" }}>
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+        <label style={{ ...lb, marginBottom: 8 }}>Videos</label>
+        {videos.map((v, i) => (
+          <div key={i} style={{ border: "1px solid #e2e8f0", borderRadius: 8, padding: "12px", marginBottom: 10, background: "#f8fafc" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+              <span style={{ fontSize: 11, fontWeight: 700, color: "#64748b", textTransform: "uppercase" }}>Video {i + 1}</span>
+              <button onClick={() => removeItem("videos", i)} style={{ background: "none", border: "none", color: "#C0185A", cursor: "pointer", fontSize: 13, padding: 0 }}>✕ Remove</button>
+            </div>
+            <div style={{ marginBottom: 8 }}>
+              <label style={lb}>Video File</label>
+              <VideoMediaPicker value={v.url || ""} onChange={url => setItem("videos", i, "url", url)} />
+            </div>
+            <div style={{ marginBottom: 8 }}><label style={lb}>Caption / Title</label>
+              <input style={fs} value={v.title || ""} onChange={e => setItem("videos", i, "title", e.target.value)} placeholder="Short video title…" />
+            </div>
+            <div>
+              <label style={lb}>Thumbnail Image</label>
+              <VideoThumbnailPicker
+                value={v.thumbnail || ""}
+                videoUrl={v.url || ""}
+                onChange={url => setItem("videos", i, "thumbnail", url)}
+              />
+            </div>
+          </div>
+        ))}
+        <button onClick={() => addItem("videos", { url: "", title: "", thumbnail: "" })}
+          style={{ fontSize: 12, padding: "7px 14px", background: "#0f172a", border: "none", borderRadius: 7, cursor: "pointer", color: "#fff", fontWeight: 600 }}>
+          + Add Video
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div>

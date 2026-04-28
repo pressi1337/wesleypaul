@@ -1,4 +1,4 @@
-export const revalidate = 60;
+export const dynamic = "force-dynamic";
 
 import type React from "react";
 import { Suspense } from "react";
@@ -226,7 +226,7 @@ function CardsGridSection({ content }: { content: Record<string, unknown> }) {
   const bgColor = getString(content, "bg_color") || "#0a1523";
   return (
     <section style={{ padding: "80px 24px", backgroundColor: hasBg ? bgColor : (bgLight ? "#f8f9fa" : "#fff"), ...getBgStyle(content) }}>
-      <BgImageOverlay content={content} />
+<BgImageOverlay content={content} />
       <div style={{ maxWidth: 1280, margin: "0 auto", position: "relative", zIndex: 1 }}>
         {(heading || subtitle) && (
           <div style={{ textAlign: "center", marginBottom: 52 }}>
@@ -235,18 +235,35 @@ function CardsGridSection({ content }: { content: Record<string, unknown> }) {
             {subtitle && <p style={{ color: "#6c757d", maxWidth: 600, margin: "16px auto 0", lineHeight: 1.8 }}>{subtitle}</p>}
           </div>
         )}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 300px), 1fr))", gap: "2rem" }}>
-          {items.map((item, i) => (
-            <div key={i} style={{ display: "flex", gap: 20, padding: "28px", background: "#fff", borderRadius: 8, boxShadow: "0 2px 12px rgba(0,0,0,0.07)", borderLeft: `4px solid ${item.color || "#2070B8"}` }}>
-              <div style={{ width: 44, height: 44, borderRadius: 8, background: item.color || "#2070B8", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                <span style={{ color: "#fff", fontWeight: 800, fontSize: 18 }}>✦</span>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 260px), 1fr))", gap: "1.5rem" }}>
+          {items.map((item, i) => {
+            const color = item.color || "#2070B8";
+            const emojiMatch = item.title?.match(/^([\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE00}-\u{FEFF}📅📍📖✉🎵🎤🎭✝️🙏💛]+)\s*/u);
+            const emoji = emojiMatch ? emojiMatch[1] : null;
+            const titleText = emoji ? item.title!.slice(emojiMatch![0].length).trim() : item.title;
+            return (
+              <div key={i} style={{ display: "flex", flexDirection: "column", background: "#fff", borderRadius: 12, boxShadow: "0 4px 20px rgba(0,0,0,0.07)", overflow: "hidden", border: "1px solid rgba(0,0,0,0.05)" }}>
+                {/* Top accent bar */}
+                <div style={{ height: 4, background: color, flexShrink: 0 }} />
+                {/* Icon + title */}
+                <div style={{ padding: "20px 22px 14px", display: "flex", alignItems: "center", gap: 14 }}>
+                  <div style={{ width: 48, height: 48, borderRadius: 10, background: `${color}1a`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: emoji ? 22 : 18 }}>
+                    {emoji ?? <span style={{ color, fontWeight: 800 }}>✦</span>}
+                  </div>
+                  {titleText && <h3 style={{ fontSize: 15, fontWeight: 700, color: "#1e293b", lineHeight: 1.35, margin: 0 }}>{titleText}</h3>}
+                </div>
+                {/* Body */}
+                {item.description && (
+                  <div style={{ padding: "0 22px 22px", color: "#475569", fontSize: 14, lineHeight: 1.75, flex: 1 }} dangerouslySetInnerHTML={{ __html:
+                    item.description
+                      .replace(/<a\s/gi, '<a style="color:#2070B8;text-decoration:underline;text-underline-offset:3px;font-weight:600;" ')
+                      .replace(/<ul/gi, '<ul style="list-style:disc;padding-left:18px;margin:0 0 4px;"')
+                      .replace(/<ol/gi, '<ol style="list-style:decimal;padding-left:18px;margin:0 0 4px;"')
+                  }} />
+                )}
               </div>
-              <div>
-                {item.title && <h3 style={{ fontSize: 15, fontWeight: 700, color: "#2070B8", marginBottom: 8 }}>{item.title}</h3>}
-                {item.description && <div style={{ color: "#6c757d", fontSize: 14, lineHeight: 1.75 }} dangerouslySetInnerHTML={{ __html: item.description }} />}
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </section>
@@ -611,6 +628,46 @@ function DonateStripSection({ content }: { content: Record<string, unknown> }) {
   );
 }
 
+interface VideoItem { url: string; title?: string; }
+function VideoGridSection({ content }: { content: Record<string, unknown> }) {
+  const heading  = getString(content, "heading");
+  const subtitle = getString(content, "subtitle");
+  const bgLight  = content["bg_light"] !== false;
+  const videos   = getArray<VideoItem>(content, "videos");
+  if (!videos.length) return <div data-vg="empty" />;
+  const single = videos.length === 1;
+  return (
+    <section data-vg="loaded" style={{ padding: "72px 24px", backgroundColor: bgLight ? "#f8f9fa" : "#0a1523" }}>
+      <div style={{ maxWidth: 1100, margin: "0 auto" }}>
+        {(heading || subtitle) && (
+          <div style={{ textAlign: "center", marginBottom: 48 }}>
+            {heading && <h2 style={{ fontSize: "clamp(1.5rem,3vw,2rem)", fontWeight: 700, color: bgLight ? "#2070B8" : "#fff", marginBottom: 12 }}>{heading}</h2>}
+            <div style={{ width: 48, height: 4, backgroundColor: "#C0185A", borderRadius: 2, margin: "0 auto" }} />
+            {subtitle && <p style={{ color: bgLight ? "#6c757d" : "rgba(255,255,255,0.7)", maxWidth: 560, margin: "14px auto 0", lineHeight: 1.8 }}>{subtitle}</p>}
+          </div>
+        )}
+        <div style={{ display: "grid", gridTemplateColumns: single ? "1fr" : "repeat(auto-fit,minmax(min(100%,480px),1fr))", gap: "2rem" }}>
+          {videos.map((v, i) => (
+            <div key={i} style={{ borderRadius: 12, overflow: "hidden", boxShadow: "0 8px 32px rgba(0,0,0,0.18)", background: "#000" }}>
+              <video
+                controls
+                preload="metadata"
+                style={{ width: "100%", display: "block", maxHeight: 360, background: "#000" }}
+                src={v.url}
+              />
+              {v.title && (
+                <div style={{ padding: "12px 18px", background: bgLight ? "#fff" : "#111827" }}>
+                  <p style={{ fontSize: 14, fontWeight: 600, color: bgLight ? "#1e293b" : "#e2e8f0", margin: 0 }}>{v.title}</p>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function renderSection(section: Section) {
   const content = parseContent(section.content_json);
   switch (section.section_type) {
@@ -629,6 +686,7 @@ function renderSection(section: Section) {
     case "latest_posts": return <LatestPostsSection key={section.id} content={content} />;
     case "custom_form":  return <CustomFormSection key={section.id} content={content} />;
     case "donate_strip": return <DonateStripSection key={section.id} content={content} />;
+    case "video_grid":   return <VideoGridSection key={section.id} content={content} />;
     default:             return null;
   }
 }

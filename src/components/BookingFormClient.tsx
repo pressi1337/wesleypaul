@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { CheckCircle, Globe, Church, Heart, BookOpen, Users, ChevronLeft, ChevronRight } from "lucide-react";
 
 const DAYS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
@@ -83,6 +83,11 @@ export default function BookingFormClient() {
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const successRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (submitted) successRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, [submitted]);
   const [selectedDates, setSelectedDates] = useState<string[]>([]);
   const [form, setForm] = useState({ name: "", email: "", phone: "", organization: "", eventType: "", location: "", message: "" });
 
@@ -159,7 +164,7 @@ export default function BookingFormClient() {
             {/* Form */}
             <div>
               {submitted ? (
-                <div style={{ borderRadius: 12, padding: 48, textAlign: "center", backgroundColor: "#f0fdf4", border: "1px solid #bbf7d0" }}>
+                <div ref={successRef} style={{ borderRadius: 12, padding: 48, textAlign: "center", backgroundColor: "#f0fdf4", border: "1px solid #bbf7d0" }}>
                   <CheckCircle size={56} style={{ color: "#16a34a", margin: "0 auto 16px" }} />
                   <h3 style={{ fontSize: "1.5rem", fontWeight: 700, color: "#0f172a", marginBottom: 12 }}>Inquiry Received!</h3>
                   <p style={{ color: "#374151", fontSize: 15, lineHeight: 1.7, marginBottom: 8 }}>

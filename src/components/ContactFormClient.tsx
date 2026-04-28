@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { MapPin, Mail, Phone, Clock, CheckCircle } from "lucide-react";
 import { FacebookIcon, YoutubeIcon, InstagramIcon, TwitterXIcon } from "@/components/SocialIcons";
 
@@ -33,6 +33,11 @@ export default function ContactFormClient({ content = {} }: { content?: ContactC
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [form, setForm] = useState({ name: "", email: "", subject: "", message: "" });
+  const successRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (submitted) successRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, [submitted]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -141,7 +146,7 @@ export default function ContactFormClient({ content = {} }: { content?: ContactC
           <div>
             <h2 style={{ fontSize: "1.5rem", fontWeight: 700, color: "#2070B8", marginBottom: 24 }}>Send Us a Message</h2>
             {submitted ? (
-              <div style={{ borderRadius: 12, padding: 48, textAlign: "center", backgroundColor: "#f0fdf4", border: "1px solid #bbf7d0" }}>
+              <div ref={successRef} style={{ borderRadius: 12, padding: 48, textAlign: "center", backgroundColor: "#f0fdf4", border: "1px solid #bbf7d0" }}>
                 <CheckCircle size={56} style={{ color: "#16a34a", margin: "0 auto 16px" }} />
                 <h3 style={{ fontSize: "1.5rem", fontWeight: 700, color: "#0f172a", marginBottom: 12 }}>Message Received!</h3>
                 <p style={{ color: "#374151", fontSize: 15, lineHeight: 1.7, marginBottom: 8 }}>

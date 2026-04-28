@@ -448,8 +448,10 @@ export default function Navbar({ items, logo }: { items?: NavItemData[]; logo?: 
               </Link>
             </div>
 
-            {/* Mobile: Donate + hamburger */}
+            {/* Mobile: Lang + Donate + hamburger */}
             <div className="flex lg:hidden items-center" style={{ gap: "8px" }}>
+              <LangSwitcher dark={false} />
+
               <Link
                 href="/give"
                 style={{
@@ -600,9 +602,6 @@ export default function Navbar({ items, logo }: { items?: NavItemData[]; logo?: 
                   </Link>
                 )
               )}
-
-              {/* Mobile Language Switcher */}
-              <MobileLangPanel lang={lang} pathname={pathname} router={router} onClose={() => setMobileOpen(false)} />
 
               {/* Mobile CTAs */}
               <div style={{ paddingTop: "16px", display: "flex", flexDirection: "column", gap: "10px" }}>
