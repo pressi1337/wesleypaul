@@ -327,19 +327,25 @@ function TwoColSection({ content }: { content: Record<string, unknown> }) {
   const ctaSecondaryHref = getString(content, "cta_secondary_href");
   const imageZoom = Number(content.image_zoom ?? 100);
   const imagePosition = getString(content, "image_position") || "center";
+  const stickyImage = content.sticky_image === true;
+  const colRatio = getString(content, "col_ratio") || "1fr 1fr";
 
-  const imgCol = image ? (
+  const imgInner = image ? (
     imageFit === "contain" ? (
       <div style={{ display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={image} alt={heading || "image"} style={{ maxWidth: "min(100%, 380px)", height: "auto", display: "block", borderRadius: 8, boxShadow: "0 8px 30px rgba(0,0,0,0.1)", transform: imageZoom > 100 ? `scale(${imageZoom / 100})` : undefined, transformOrigin: "center" }} />
       </div>
     ) : (
-      <div style={{ position: "relative", borderRadius: 8, overflow: "hidden", minHeight: 400, backgroundColor: "#1a2a3a", boxShadow: "0 8px 30px rgba(0,0,0,0.15)" }}>
+      <div style={{ position: "relative", borderRadius: 8, overflow: "hidden", height: stickyImage ? "min(72vh, 620px)" : undefined, minHeight: stickyImage ? undefined : 400, backgroundColor: "#1a2a3a", boxShadow: "0 8px 30px rgba(0,0,0,0.15)" }}>
         <Image src={image} alt={heading || "image"} fill style={{ objectFit: "cover", objectPosition: imagePosition, transform: imageZoom > 100 ? `scale(${imageZoom / 100})` : undefined, transformOrigin: imagePosition }} />
       </div>
     )
   ) : null;
+
+  const imgCol = stickyImage
+    ? <div className="two-col-sticky-img">{imgInner}</div>
+    : imgInner;
 
   const textCol = (
     <div style={{ backgroundColor: "#fff", borderRadius: 8, padding: 40, boxShadow: "0 2px 15px rgba(0,0,0,0.07)" }}>
@@ -351,7 +357,7 @@ function TwoColSection({ content }: { content: Record<string, unknown> }) {
       ))}
       {(ctaLabel || ctaSecondaryLabel) && (
         <div style={{ display: "flex", flexWrap: "wrap", gap: 12, marginTop: 8 }}>
-          {ctaLabel && ctaHref && <a href={ctaHref} className="btn-primary">{ctaLabel}</a>}
+          {ctaLabel && ctaHref && <a href={ctaHref} className="btn-primary" style={{ whiteSpace: "pre-line" }}>{ctaLabel}</a>}
           {ctaSecondaryLabel && ctaSecondaryHref && <a href={ctaSecondaryHref} className="btn-outline-accent">{ctaSecondaryLabel}</a>}
         </div>
       )}
@@ -361,7 +367,9 @@ function TwoColSection({ content }: { content: Record<string, unknown> }) {
   return (
     <section style={{ padding: "80px 24px", backgroundColor: "#f8f9fa" }}>
       <div style={{ maxWidth: 1280, margin: "0 auto" }}>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 420px), 1fr))", gap: "3rem", alignItems: "center" }}>
+        <div style={{ display: "grid", gridTemplateColumns: `repeat(auto-fit, minmax(min(100%, 380px), 1fr))`, gap: "3rem", alignItems: stickyImage ? "start" : "center" }}
+          className={stickyImage ? "two-col-sticky" : undefined}>
+          <style>{stickyImage ? `@media(min-width:860px){.two-col-sticky{grid-template-columns:${colRatio} !important}.two-col-sticky-img{position:sticky;top:88px;align-self:start}}` : ""}</style>
           {imageSide === "left" ? <>{imgCol}{textCol}</> : <>{textCol}{imgCol}</>}
         </div>
       </div>
@@ -400,20 +408,49 @@ function CtaSection({ content }: { content: Record<string, unknown> }) {
   const secondaryText = getString(content, "secondary_cta_text");
   const secondaryLink = getString(content, "secondary_cta_link");
   const bgColor = getString(content, "bg_color") || "#0d1b2e";
+  const sideImage = getString(content, "side_image");
+
+  const buttons = (
+    <div style={{ display: "flex", gap: 14, justifyContent: sideImage ? "flex-start" : "center", flexWrap: "wrap" }}>
+      {primaryText && primaryLink && (
+        <a href={primaryLink} style={{ padding: "14px 32px", background: "#C0185A", color: "#fff", borderRadius: 8, fontWeight: 700, fontSize: 16, textDecoration: "none" }}>{primaryText}</a>
+      )}
+      {secondaryText && secondaryLink && (
+        <a href={secondaryLink} style={{ padding: "14px 32px", border: "2px solid rgba(255,255,255,0.3)", color: "#fff", borderRadius: 8, fontWeight: 600, fontSize: 16, textDecoration: "none" }}>{secondaryText}</a>
+      )}
+    </div>
+  );
+
   return (
-    <section style={{ backgroundColor: bgColor, padding: "80px 24px", textAlign: "center", ...getBgStyle(content) }}>
+    <section style={{ backgroundColor: bgColor, padding: "80px 24px", textAlign: sideImage ? "left" : "center", ...getBgStyle(content) }}>
       <BgImageOverlay content={content} />
-      <div style={{ maxWidth: 700, margin: "0 auto", position: "relative", zIndex: 1 }}>
-        {heading && <h2 style={{ fontSize: "clamp(24px, 3.5vw, 42px)", fontWeight: 800, color: "#fff", margin: "0 0 16px" }}>{heading}</h2>}
-        {body && <p style={{ fontSize: 18, color: "rgba(255,255,255,0.65)", margin: "0 0 32px", lineHeight: 1.7 }}>{body}</p>}
-        <div style={{ display: "flex", gap: 14, justifyContent: "center", flexWrap: "wrap" }}>
-          {primaryText && primaryLink && (
-            <a href={primaryLink} style={{ padding: "14px 32px", background: "#C0185A", color: "#fff", borderRadius: 8, fontWeight: 700, fontSize: 16, textDecoration: "none" }}>{primaryText}</a>
-          )}
-          {secondaryText && secondaryLink && (
-            <a href={secondaryLink} style={{ padding: "14px 32px", border: "2px solid rgba(255,255,255,0.3)", color: "#fff", borderRadius: 8, fontWeight: 600, fontSize: 16, textDecoration: "none" }}>{secondaryText}</a>
-          )}
-        </div>
+      <div style={{ maxWidth: sideImage ? 1000 : 700, margin: "0 auto", position: "relative", zIndex: 1 }}>
+        {heading && <h2 style={{ fontSize: "clamp(24px, 3.5vw, 42px)", fontWeight: 800, color: "#fff", margin: "0 0 32px", textAlign: "center" }}>{heading}</h2>}
+
+        {sideImage ? (
+          <div style={{ display: "flex", gap: 40, alignItems: "center", flexWrap: "wrap" }}>
+            {/* Side image */}
+            <div style={{ flexShrink: 0, width: "clamp(140px, 22vw, 220px)" }}>
+              <Image
+                src={sideImage}
+                alt={heading || "Dr. Wesley Paul"}
+                width={220}
+                height={280}
+                style={{ width: "100%", height: "auto", borderRadius: 12, objectFit: "cover", boxShadow: "0 8px 32px rgba(0,0,0,0.4)" }}
+              />
+            </div>
+            {/* Text + buttons */}
+            <div style={{ flex: 1, minWidth: 240 }}>
+              {body && <p style={{ fontSize: 18, color: "rgba(255,255,255,0.75)", margin: "0 0 28px", lineHeight: 1.8 }}>{body}</p>}
+              {buttons}
+            </div>
+          </div>
+        ) : (
+          <>
+            {body && <p style={{ fontSize: 18, color: "rgba(255,255,255,0.65)", margin: "0 0 32px", lineHeight: 1.7 }}>{body}</p>}
+            {buttons}
+          </>
+        )}
       </div>
     </section>
   );

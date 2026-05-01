@@ -201,7 +201,7 @@ function TwoColSection({ content }: { content: Record<string, unknown> }) {
       {body && body.split("\n\n").map((p, i) => <p key={i} style={{ color: "#6c757d", lineHeight: 1.8, marginBottom: 16 }}>{p}</p>)}
       {(ctaLabel || ctaSecondaryLabel) && (
         <div style={{ display: "flex", flexWrap: "wrap", gap: 12, marginTop: 8 }}>
-          {ctaLabel && ctaHref && <a href={ctaHref} className="btn-primary">{ctaLabel}</a>}
+          {ctaLabel && ctaHref && <a href={ctaHref} className="btn-primary" style={{ whiteSpace: "pre-line" }}>{ctaLabel}</a>}
           {ctaSecondaryLabel && ctaSecondaryHref && <a href={ctaSecondaryHref} className="btn-outline-accent">{ctaSecondaryLabel}</a>}
         </div>
       )}
@@ -517,6 +517,44 @@ function DonateStripSection({ content }: { content: Record<string, unknown> }) {
   );
 }
 
+function VideoHeroSection({ content }: { content: Record<string, unknown> }) {
+  const eyebrow = getString(content, "eyebrow");
+  const heading = getString(content, "heading");
+  const subheading = getString(content, "subheading");
+  const videoSrc = getString(content, "video_src");
+  const poster = getString(content, "poster");
+  const overlay = Number(content.overlay ?? 50) / 100;
+  const ctaLabel = getString(content, "cta_label");
+  const ctaHref = getString(content, "cta_href");
+  return (
+    <section style={{ position: "relative", width: "100%", height: "clamp(480px,70vh,780px)", minHeight: 480, overflow: "hidden", backgroundColor: "#0d1523", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      {videoSrc ? (
+        <video
+          src={videoSrc}
+          poster={poster || undefined}
+          autoPlay
+          muted
+          loop
+          playsInline
+          style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", zIndex: 0 }}
+        />
+      ) : poster ? (
+        <Image src={poster} alt={heading || "hero"} fill style={{ objectFit: "cover", zIndex: 0 }} priority />
+      ) : null}
+      <div style={{ position: "absolute", inset: 0, background: `rgba(0,0,0,${overlay})`, zIndex: 1 }} />
+      <div style={{ position: "relative", zIndex: 2, textAlign: "center", padding: "0 24px", maxWidth: 860 }}>
+        {eyebrow && <p style={{ fontSize: 12, fontWeight: 700, letterSpacing: "0.15em", textTransform: "uppercase" as const, color: "#f5a623", marginBottom: 14 }}>{eyebrow}</p>}
+        {heading && <h1 style={{ fontSize: "clamp(2rem,5.5vw,3.5rem)", fontWeight: 800, color: "#fff", lineHeight: 1.15, margin: "0 0 18px" }}>{heading}</h1>}
+        <div style={{ width: 56, height: 4, backgroundColor: "#C0185A", borderRadius: 2, margin: "0 auto" }} />
+        {subheading && <p style={{ marginTop: 22, fontSize: "clamp(1rem,2vw,1.2rem)", color: "rgba(255,255,255,0.82)", maxWidth: 600, margin: "22px auto 0", lineHeight: 1.65 }}>{subheading}</p>}
+        {ctaLabel && ctaHref && (
+          <a href={ctaHref} style={{ display: "inline-block", marginTop: 32, padding: "14px 36px", background: "#C0185A", color: "#fff", borderRadius: 8, fontWeight: 700, fontSize: 16, textDecoration: "none" }}>{ctaLabel}</a>
+        )}
+      </div>
+    </section>
+  );
+}
+
 interface VideoItem { url?: string; title?: string; thumbnail?: string; }
 function VideoGridSection({ content }: { content: Record<string, unknown> }) {
   const heading = getString(content, "heading");
@@ -530,6 +568,7 @@ function renderSection(section: Section) {
   const content = parseContent(section.content_json);
   switch (section.section_type) {
     case "page_header":  return <PageHeaderSection key={section.id} content={content} />;
+    case "video_hero":   return <VideoHeroSection key={section.id} content={content} />;
     case "hero":         return <HeroSection key={section.id} content={content} />;
     case "text":         return <TextSection key={section.id} content={content} />;
     case "cards_grid":   return <CardsGridSection key={section.id} content={content} />;

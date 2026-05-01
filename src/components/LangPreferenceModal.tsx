@@ -28,7 +28,7 @@ export default function LangPreferenceModal() {
 
     checked.current = true;
 
-    fetch("/api/languages")
+    fetch("/api/languages?modal=1")
       .then(r => r.json())
       .then((d: { languages?: Lang[] }) => {
         if (Array.isArray(d.languages) && d.languages.length > 0) {

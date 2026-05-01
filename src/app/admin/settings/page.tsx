@@ -145,6 +145,7 @@ export default function FeaturesPage() {
   const [activeLangs, setActiveLangs] = useState<ActiveLang[]>([]);
   const [showAddLang, setShowAddLang] = useState(false);
   const [customLang, setCustomLang] = useState({ code: "", label: "", nativeLabel: "", flag: "" });
+  const [modalLangCodes, setModalLangCodes] = useState<string[]>([]);
 
   const showToast = (msg: string, ok = true) => {
     setToast({ msg, ok });
@@ -173,6 +174,15 @@ export default function FeaturesPage() {
         { code: "es", label: "Spanish", nativeLabel: "Español",flag: "🇪🇸", enabled: true },
       ]);
     }
+
+    // Parse modal language codes (defaults to all active if not set)
+    try {
+      const stored: string[] = JSON.parse(settings.lang_modal_languages || "[]");
+      setModalLangCodes(stored);
+    } catch {
+      setModalLangCodes([]);
+    }
+
     setLoading(false);
   }, []);
 
@@ -187,6 +197,7 @@ export default function FeaturesPage() {
     const toSave = {
       ...s,
       active_languages: JSON.stringify(activeLangs),
+      lang_modal_languages: JSON.stringify(modalLangCodes),
     };
     const r = await fetch("/api/admin/settings", {
       method: "PUT",
@@ -393,6 +404,61 @@ export default function FeaturesPage() {
                 </button>
               </div>
             ))}
+          </div>
+
+          {/* ── Language Preference Modal ── */}
+          <div style={{ marginTop: 20, paddingTop: 18, borderTop: "1px solid #e8ecf0" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+              <Globe size={14} style={{ color: "#7c3aed" }} />
+              <span style={{ fontWeight: 700, fontSize: 13, color: "#0f172a" }}>Language Preference Modal</span>
+            </div>
+            <p style={{ fontSize: 12, color: "#64748b", margin: "0 0 12px" }}>
+              Choose which languages are shown in the first-visit &ldquo;Choose your language&rdquo; popup.
+              English is always included. Leave all unchecked to show every active language.
+            </p>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(210px, 1fr))", gap: 8 }}>
+              {activeLangs.filter(l => l.enabled !== false).map(l => {
+                const checked = modalLangCodes.length === 0 || modalLangCodes.includes(l.code);
+                return (
+                  <label key={l.code} style={{
+                    display: "flex", alignItems: "center", gap: 10,
+                    padding: "9px 12px", border: `1px solid ${checked ? "#c4b5fd" : "#e2e8f0"}`,
+                    borderRadius: 8, background: checked ? "#f5f3ff" : "#f8fafc",
+                    cursor: "pointer",
+                  }}>
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={() => {
+                        const base = modalLangCodes.length === 0
+                          ? activeLangs.filter(x => x.enabled !== false).map(x => x.code)
+                          : [...modalLangCodes];
+                        const next = base.includes(l.code)
+                          ? base.filter(c => c !== l.code)
+                          : [...base, l.code];
+                        setModalLangCodes(next.length === activeLangs.filter(x => x.enabled !== false).length ? [] : next);
+                      }}
+                      style={{ width: 14, height: 14, accentColor: "#7c3aed", flexShrink: 0 }}
+                    />
+                    <span style={{ fontSize: 18 }}>{l.flag}</span>
+                    <div>
+                      <div style={{ fontWeight: 700, fontSize: 12.5, color: "#0f172a" }}>{l.nativeLabel}</div>
+                      <div style={{ fontSize: 11, color: "#94a3b8" }}>{l.label}</div>
+                    </div>
+                  </label>
+                );
+              })}
+            </div>
+            {modalLangCodes.length > 0 && (
+              <p style={{ fontSize: 11.5, color: "#7c3aed", marginTop: 8 }}>
+                Modal will show: English + {modalLangCodes.join(", ")}
+              </p>
+            )}
+            {modalLangCodes.length === 0 && activeLangs.filter(l => l.enabled !== false).length > 0 && (
+              <p style={{ fontSize: 11.5, color: "#94a3b8", marginTop: 8 }}>
+                All active languages selected — modal shows all of them.
+              </p>
+            )}
           </div>
 
           {/* Add language */}

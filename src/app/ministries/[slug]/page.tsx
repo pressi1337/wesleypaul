@@ -18,6 +18,19 @@ function parseContent(json: string): Record<string, unknown> { try { return JSON
 function getString(obj: Record<string, unknown>, key: string): string { const val = obj[key]; return typeof val === "string" ? val : ""; }
 function getArray<T>(obj: Record<string, unknown>, key: string): T[] { const val = obj[key]; return Array.isArray(val) ? (val as T[]) : []; }
 
+function getBgStyle(c: Record<string, unknown>): React.CSSProperties {
+  const img = getString(c, "bg_image");
+  if (!img) return {};
+  const pos = getString(c, "bg_position") || "center";
+  const zoom = Number(c.bg_zoom ?? 100);
+  return { backgroundImage: `url(${img})`, backgroundSize: zoom > 100 ? `${zoom}%` : "cover", backgroundPosition: pos };
+}
+function BgImageOverlay({ content }: { content: Record<string, unknown> }) {
+  if (!getString(content, "bg_image")) return null;
+  const opacity = Number(content.bg_overlay ?? 50) / 100;
+  return <div style={{ position: "absolute", inset: 0, background: `rgba(0,0,0,${opacity})`, zIndex: 0, pointerEvents: "none" }} />;
+}
+
 async function getActiveLangCodes(): Promise<Set<string>> {
   try {
     const [rows] = await pool.execute(
@@ -84,7 +97,8 @@ function mergeContent(english: Record<string, unknown>, translated: Record<strin
 
 // Section renderers (same as [slug]/page.tsx)
 function PageHeaderSection({ content }: { content: Record<string, unknown> }) {
-  const eyebrow = getString(content, "eyebrow"), heading = getString(content, "heading"), subheading = getString(content, "subheading"), image = getString(content, "image");
+  const eyebrow = getString(content, "eyebrow"), heading = getString(content, "heading"), subheading = getString(content, "subheading");
+  const image = getString(content, "bg_image") || getString(content, "image");
   const bg = image ? `linear-gradient(rgba(13,27,46,0.82),rgba(13,27,46,0.87)), url(${image}) center/cover no-repeat` : "linear-gradient(135deg, #0a1523 0%, #2070B8 100%)";
   return (
     <section style={{ padding: "80px 24px", background: bg }}>
@@ -142,16 +156,43 @@ function CardsGridSection({ content }: { content: Record<string, unknown> }) {
 }
 
 function CtaSection({ content }: { content: Record<string, unknown> }) {
-  const heading = getString(content, "heading"), body = getString(content, "body"), primaryText = getString(content, "primary_cta_text"), primaryLink = getString(content, "primary_cta_link"), secondaryText = getString(content, "secondary_cta_text"), secondaryLink = getString(content, "secondary_cta_link");
+  const heading = getString(content, "heading");
+  const body = getString(content, "body");
+  const primaryText = getString(content, "primary_cta_text");
+  const primaryLink = getString(content, "primary_cta_link");
+  const secondaryText = getString(content, "secondary_cta_text");
+  const secondaryLink = getString(content, "secondary_cta_link");
+  const bgColor = getString(content, "bg_color") || "#0d1b2e";
+  const sideImage = getString(content, "side_image");
+
+  const buttons = (
+    <div style={{ display: "flex", gap: 14, justifyContent: sideImage ? "flex-start" : "center", flexWrap: "wrap" }}>
+      {primaryText && primaryLink && <a href={primaryLink} style={{ padding: "14px 32px", background: "#C0185A", color: "#fff", borderRadius: 8, fontWeight: 700, fontSize: 16, textDecoration: "none" }}>{primaryText}</a>}
+      {secondaryText && secondaryLink && <a href={secondaryLink} style={{ padding: "14px 32px", border: "2px solid rgba(255,255,255,0.3)", color: "#fff", borderRadius: 8, fontWeight: 600, fontSize: 16, textDecoration: "none" }}>{secondaryText}</a>}
+    </div>
+  );
+
   return (
-    <section style={{ background: "#0d1b2e", padding: "80px 24px", textAlign: "center" }}>
-      <div style={{ maxWidth: 700, margin: "0 auto" }}>
-        {heading && <h2 style={{ fontSize: "clamp(24px,3.5vw,42px)", fontWeight: 800, color: "#fff", margin: "0 0 16px" }}>{heading}</h2>}
-        {body && <p style={{ fontSize: 18, color: "rgba(255,255,255,0.65)", margin: "0 0 32px", lineHeight: 1.7 }}>{body}</p>}
-        <div style={{ display: "flex", gap: 14, justifyContent: "center", flexWrap: "wrap" }}>
-          {primaryText && primaryLink && <a href={primaryLink} style={{ padding: "14px 32px", background: "#C0185A", color: "#fff", borderRadius: 8, fontWeight: 700, fontSize: 16, textDecoration: "none" }}>{primaryText}</a>}
-          {secondaryText && secondaryLink && <a href={secondaryLink} style={{ padding: "14px 32px", border: "2px solid rgba(255,255,255,0.3)", color: "#fff", borderRadius: 8, fontWeight: 600, fontSize: 16, textDecoration: "none" }}>{secondaryText}</a>}
-        </div>
+    <section style={{ backgroundColor: bgColor, padding: "80px 24px", textAlign: sideImage ? "left" : "center", position: "relative", ...getBgStyle(content) }}>
+      <BgImageOverlay content={content} />
+      <div style={{ maxWidth: sideImage ? 1000 : 700, margin: "0 auto", position: "relative", zIndex: 1 }}>
+        {heading && <h2 style={{ fontSize: "clamp(24px,3.5vw,42px)", fontWeight: 800, color: "#fff", margin: "0 0 32px", textAlign: "center" }}>{heading}</h2>}
+        {sideImage ? (
+          <div style={{ display: "flex", gap: 40, alignItems: "center", flexWrap: "wrap" }}>
+            <div style={{ flexShrink: 0, width: "clamp(140px, 22vw, 220px)" }}>
+              <Image src={sideImage} alt={heading || ""} width={220} height={280} style={{ width: "100%", height: "auto", borderRadius: 12, objectFit: "cover", boxShadow: "0 8px 32px rgba(0,0,0,0.4)" }} />
+            </div>
+            <div style={{ flex: 1, minWidth: 240 }}>
+              {body && <p style={{ fontSize: 18, color: "rgba(255,255,255,0.75)", margin: "0 0 28px", lineHeight: 1.8 }}>{body}</p>}
+              {buttons}
+            </div>
+          </div>
+        ) : (
+          <>
+            {body && <p style={{ fontSize: 18, color: "rgba(255,255,255,0.65)", margin: "0 0 32px", lineHeight: 1.7 }}>{body}</p>}
+            {buttons}
+          </>
+        )}
       </div>
     </section>
   );

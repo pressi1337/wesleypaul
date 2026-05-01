@@ -457,19 +457,19 @@ export default function Navbar({ items, logo }: { items?: NavItemData[]; logo?: 
                 style={{
                   display: "flex",
                   alignItems: "center",
-                  gap: "8px",
-                  padding: "10px 22px",
+                  gap: "5px",
+                  padding: "7px 13px",
                   backgroundColor: ACCENT,
                   color: "#fff",
                   fontWeight: 700,
-                  fontSize: "15px",
+                  fontSize: "13px",
                   textDecoration: "none",
                   borderRadius: "4px",
                   whiteSpace: "nowrap",
                   boxShadow: `0 2px 10px rgba(155,16,48,0.4)`,
                 }}
               >
-                <Heart size={15} fill="currentColor" />
+                <Heart size={12} fill="currentColor" />
                 Donate
               </Link>
 

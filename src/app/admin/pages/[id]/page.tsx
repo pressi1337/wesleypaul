@@ -39,6 +39,7 @@ function getEditableFields(section_type: string, content: Record<string, unknown
     case "hero":        f.push({ path: "heading", label: "Heading" }, { path: "subheading", label: "Subheading" }, { path: "cta_text", label: "CTA Text" }); break;
     case "text":        f.push({ path: "heading", label: "Heading" }, { path: "body", label: "Body", multiline: true }); break;
     case "page_header": f.push({ path: "eyebrow", label: "Eyebrow" }, { path: "heading", label: "Heading" }, { path: "subheading", label: "Subheading", multiline: true }); break;
+    case "video_hero":  f.push({ path: "eyebrow", label: "Eyebrow" }, { path: "heading", label: "Heading" }, { path: "subheading", label: "Subheading", multiline: true }, { path: "cta_label", label: "CTA Label" }, { path: "cta_href", label: "CTA Link" }); break;
     case "two_col":     f.push({ path: "label", label: "Label" }, { path: "heading", label: "Heading" }, { path: "body", label: "Body", multiline: true }, { path: "cta_label", label: "CTA Label" }, { path: "cta_secondary_label", label: "Secondary CTA" }); break;
     case "cta":         f.push({ path: "heading", label: "Heading" }, { path: "body", label: "Body", multiline: true }, { path: "primary_cta_text", label: "Primary Button" }, { path: "secondary_cta_text", label: "Secondary Button" }); break;
     case "contact_form": f.push({ path: "heading", label: "Heading" }, { path: "hours", label: "Office Hours" }); break;
@@ -104,6 +105,7 @@ const DEFAULT_LANGS: LangEntry[] = LANG_OPTIONS.filter(l => !l.isDefault).map(l 
 
 const SECTION_TYPES = [
   { value: "page_header",  label: "Page Header",    color: "#0a1523", icon: "▬", desc: "Dark gradient banner with eyebrow, heading & subtext" },
+  { value: "video_hero",   label: "Video Hero",     color: "#be185d", icon: "▶", desc: "Full-screen background video with overlay text & CTA" },
   { value: "hero",         label: "Hero Banner",    color: "#7c3aed", icon: "◉", desc: "Full-width header with image & CTA button" },
   { value: "text",         label: "Text Block",     color: "#2070B8", icon: "¶", desc: "Heading and multi-paragraph body text" },
   { value: "two_col",      label: "Two Column",     color: "#0891b2", icon: "⊟", desc: "Image + text side-by-side layout" },
@@ -770,16 +772,33 @@ function SectionPreview({ sec, translatedJson, previewDevice = "desktop" }: { se
     const bgStyle = bgWrapStyle(c);
     const overlayOpacity = Number(c.bg_overlay ?? 50) / 100;
     const bgColor = getString(c, "bg_color") || "#0d1b2e";
+    const sideImage = getString(c, "side_image");
     return (
-      <div style={{ padding: "60px 32px", backgroundColor: bgColor, textAlign: "center", position: "relative", ...bgStyle }}>
+      <div style={{ padding: "60px 32px", backgroundColor: bgColor, textAlign: sideImage ? "left" : "center", position: "relative", ...bgStyle }}>
         {bgStyle && <BgOverlay opacity={overlayOpacity} />}
-        <div style={{ position: "relative", zIndex: 1 }}>
-          <h2 style={{ fontSize: "clamp(22px,3vw,34px)", fontWeight: 800, color: "#fff", marginBottom: 14 }}>{heading}</h2>
-          {body && <p style={{ fontSize: 15, color: "rgba(255,255,255,0.65)", marginBottom: 28, maxWidth: 560, margin: "0 auto 28px", lineHeight: 1.7 }}>{body.slice(0, 160)}{body.length > 160 ? "…" : ""}</p>}
-          <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
-            <span style={{ padding: "11px 28px", background: "#C0185A", color: "#fff", borderRadius: 6, fontWeight: 700, fontSize: 13 }}>{p1}</span>
-            {p2 && <span style={{ padding: "11px 28px", border: "2px solid rgba(255,255,255,0.3)", color: "#fff", borderRadius: 6, fontWeight: 600, fontSize: 13 }}>{p2}</span>}
-          </div>
+        <div style={{ maxWidth: sideImage ? 900 : 620, margin: "0 auto", position: "relative", zIndex: 1 }}>
+          <h2 style={{ fontSize: "clamp(22px,3vw,34px)", fontWeight: 800, color: "#fff", marginBottom: 24, textAlign: "center" }}>{heading}</h2>
+          {sideImage ? (
+            <div style={{ display: "flex", gap: 32, alignItems: "center", flexWrap: "wrap" }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={sideImage} alt="" style={{ width: 120, height: 155, objectFit: "cover", borderRadius: 10, flexShrink: 0, boxShadow: "0 6px 24px rgba(0,0,0,0.45)" }} />
+              <div style={{ flex: 1, minWidth: 200 }}>
+                {body && <p style={{ fontSize: 14, color: "rgba(255,255,255,0.72)", margin: "0 0 18px", lineHeight: 1.7 }}>{body.slice(0, 200)}{body.length > 200 ? "…" : ""}</p>}
+                <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                  <span style={{ padding: "10px 22px", background: "#C0185A", color: "#fff", borderRadius: 7, fontWeight: 700, fontSize: 13 }}>{p1}</span>
+                  {p2 && <span style={{ padding: "10px 22px", border: "2px solid rgba(255,255,255,0.3)", color: "#fff", borderRadius: 7, fontWeight: 600, fontSize: 13 }}>{p2}</span>}
+                </div>
+              </div>
+            </div>
+          ) : (
+            <>
+              {body && <p style={{ fontSize: 14, color: "rgba(255,255,255,0.65)", margin: "0 0 24px", lineHeight: 1.7 }}>{body.slice(0, 160)}{body.length > 160 ? "…" : ""}</p>}
+              <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
+                <span style={{ padding: "11px 28px", background: "#C0185A", color: "#fff", borderRadius: 6, fontWeight: 700, fontSize: 13 }}>{p1}</span>
+                {p2 && <span style={{ padding: "11px 28px", border: "2px solid rgba(255,255,255,0.3)", color: "#fff", borderRadius: 6, fontWeight: 600, fontSize: 13 }}>{p2}</span>}
+              </div>
+            </>
+          )}
         </div>
       </div>
     );
@@ -854,6 +873,31 @@ function SectionPreview({ sec, translatedJson, previewDevice = "desktop" }: { se
     );
   }
 
+  if (sec.section_type === "video_hero") {
+    const eyebrow = getString(c, "eyebrow");
+    const heading = getString(c, "heading") || "Event Title";
+    const sub = getString(c, "subheading");
+    const poster = getString(c, "poster");
+    const videoSrc = getString(c, "video_src");
+    const overlay = Number(c.overlay ?? 50) / 100;
+    const ctaLabel = getString(c, "cta_label");
+    const bg = poster
+      ? `linear-gradient(rgba(0,0,0,${overlay}),rgba(0,0,0,${overlay})), url(${poster}) center/cover no-repeat`
+      : "linear-gradient(135deg, #0d1523 0%, #be185d 100%)";
+    return (
+      <div style={{ padding: "48px 32px", background: bg, textAlign: "center", position: "relative" }}>
+        {videoSrc && (
+          <div style={{ position: "absolute", top: 8, right: 10, background: "#be185d", color: "#fff", fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 4, letterSpacing: "0.08em" }}>▶ VIDEO</div>
+        )}
+        {eyebrow && <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.15em", textTransform: "uppercase", color: "#f5a623", marginBottom: 10 }}>{eyebrow}</p>}
+        <h1 style={{ fontSize: "clamp(22px,4vw,38px)", fontWeight: 800, color: "#fff", marginBottom: 14 }}>{heading}</h1>
+        <div style={{ width: 48, height: 4, background: "#C0185A", borderRadius: 2, margin: "0 auto 14px" }} />
+        {sub && <p style={{ fontSize: 14, color: "rgba(255,255,255,0.78)", maxWidth: 480, margin: "0 auto 16px" }}>{sub.slice(0, 120)}{sub.length > 120 ? "…" : ""}</p>}
+        {ctaLabel && <span style={{ display: "inline-block", padding: "10px 24px", background: "#C0185A", color: "#fff", borderRadius: 6, fontWeight: 700, fontSize: 13 }}>{ctaLabel}</span>}
+      </div>
+    );
+  }
+
   if (sec.section_type === "donate_strip") {
     const text = getString(c, "text") || "Partner with us — every gift reaches another soul with the Gospel.";
     const btnLabel = getString(c, "button_label") || "Give Now";
@@ -899,7 +943,7 @@ function SectionPreview({ sec, translatedJson, previewDevice = "desktop" }: { se
         <h3 style={{ fontSize: 17, fontWeight: 700, color: "#2070B8", margin: 0, lineHeight: 1.3 }}>{heading}</h3>
         <div style={{ width: 32, height: 3, background: "#C0185A", borderRadius: 2 }} />
         {body && <p style={{ fontSize: 12.5, color: "#6c757d", lineHeight: 1.7, margin: 0 }}>{body.slice(0, 160)}{body.length > 160 ? "…" : ""}</p>}
-        {cta && <span style={{ display: "inline-block", marginTop: 4, padding: "8px 18px", background: "#C0185A", color: "#fff", borderRadius: 6, fontSize: 12, fontWeight: 700, width: "fit-content" }}>{ctaHref ? cta : cta}</span>}
+        {cta && <span style={{ display: "inline-block", marginTop: 4, padding: "8px 18px", background: "#C0185A", color: "#fff", borderRadius: 6, fontSize: 12, fontWeight: 700, width: "fit-content", whiteSpace: "pre-line" }}>{cta}</span>}
       </div>
     );
     return (
@@ -1176,22 +1220,24 @@ function FormIdSelector({ content, set, fs, lb, row }: {
         <input style={fs} value={getStr("heading")} onChange={e => set("heading", e.target.value)} placeholder="e.g. Get in Touch" />
       </div>
 
-      {/* Left section content — only in two-column mode */}
-      {layout === "left_form" && (
-        <div style={{ ...row as React.CSSProperties }}>
-          <label style={{ ...lb, marginBottom: 6 }}>Left Section Content</label>
-          <RichTextEditor
-            value={getStr("description")}
-            onChange={v => set("description", v)}
-            minHeight={180}
-            placeholder="Write intro text, bullet points, contact details… Rich formatting supported."
-          />
-        </div>
-      )}
+      {/* Description — always visible, label adapts to layout */}
+      <div style={{ ...row as React.CSSProperties }}>
+        <label style={{ ...lb, marginBottom: 6 }}>
+          {layout === "left_form" ? "Left Section Content" : "Description (shown above form)"}
+        </label>
+        <RichTextEditor
+          value={getStr("description")}
+          onChange={v => set("description", v)}
+          minHeight={160}
+          placeholder={layout === "left_form"
+            ? "Write intro text, bullet points, contact details… Rich formatting supported."
+            : "Optional intro text shown above the form…"}
+        />
+      </div>
 
       {/* Form heading — shown above the form card (two-column only) */}
       {layout === "left_form" && (
-        <div style={row}><label style={lb}>Form Heading (appears above the form)</label>
+        <div style={row}><label style={lb}>Form Card Heading (appears above the form inputs)</label>
           <input style={fs} value={getStr("form_heading")} onChange={e => set("form_heading", e.target.value)} placeholder="e.g. Send Us a Message" />
         </div>
       )}
@@ -1206,6 +1252,11 @@ function FormIdSelector({ content, set, fs, lb, row }: {
         <div style={{ marginTop: 6, fontSize: 11, color: "#94a3b8" }}>
           <a href="/admin/forms" target="_blank" rel="noopener noreferrer" style={{ color: "#2070B8" }}>Manage Forms →</a>
         </div>
+      </div>
+
+      {/* Submit button label */}
+      <div style={row}><label style={lb}>Submit Button Label</label>
+        <input style={fs} value={getStr("submit_label")} onChange={e => set("submit_label", e.target.value)} placeholder="Submit" />
       </div>
     </div>
   );
@@ -1389,9 +1440,19 @@ function SectionEditor({ sec, onUpdate }: { sec: Section; onUpdate: (sec: Sectio
         <div><label style={lb}>Primary Text</label><input style={fs} value={getString(content, "primary_cta_text")} onChange={e => set("primary_cta_text", e.target.value)} /></div>
         <div><label style={lb}>Primary Link</label><input style={fs} value={getString(content, "primary_cta_link")} onChange={e => set("primary_cta_link", e.target.value)} /></div>
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 12 }}>
         <div><label style={lb}>Secondary Text</label><input style={fs} value={getString(content, "secondary_cta_text")} onChange={e => set("secondary_cta_text", e.target.value)} /></div>
         <div><label style={lb}>Secondary Link</label><input style={fs} value={getString(content, "secondary_cta_link")} onChange={e => set("secondary_cta_link", e.target.value)} /></div>
+      </div>
+      {/* Optional side image */}
+      <div style={{ borderTop: "1px solid #e8ecf0", paddingTop: 12 }}>
+        <label style={{ ...lb, marginBottom: 6 }}>Side Image <span style={{ fontWeight: 400, color: "#94a3b8" }}>(optional — shown beside the description)</span></label>
+        <MediaPicker value={getString(content, "side_image")} onChange={v => set("side_image", v)} />
+        {getString(content, "side_image") && (
+          <button onClick={() => set("side_image", "")} style={{ marginTop: 6, fontSize: 11.5, color: "#C0185A", background: "none", border: "none", cursor: "pointer", padding: 0 }}>
+            ✕ Remove image
+          </button>
+        )}
       </div>
     </div>
   );
@@ -1467,6 +1528,41 @@ function SectionEditor({ sec, onUpdate }: { sec: Section; onUpdate: (sec: Sectio
     </div>
   );
 
+  if (sec.section_type === "video_hero") return (
+    <div>
+      <div style={row}>
+        <label style={lb}>Background Video</label>
+        <VideoMediaPicker value={getString(content, "video_src")} onChange={v => set("video_src", v)} />
+      </div>
+      <div style={row}>
+        <label style={lb}>Poster Image (shown before video loads)</label>
+        <PageImageControlPanel
+          value={getString(content, "poster")}
+          onChange={v => set("poster", v)}
+          sizeHint="1920 × 1080 px · JPG or WebP · shown before video plays"
+        />
+      </div>
+      <div style={row}>
+        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 3 }}>
+          <label style={lb}>Overlay Darkness</label>
+          <span style={{ fontSize: 11, color: "#94a3b8", fontWeight: 700 }}>{Number(content.overlay ?? 50)}%</span>
+        </div>
+        <input type="range" min={0} max={90} step={5}
+          value={Number(content.overlay ?? 50)}
+          onChange={e => set("overlay", Number(e.target.value))}
+          style={{ width: "100%", accentColor: "#2070B8" }} />
+        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: "#cbd5e1", marginTop: 2 }}>
+          <span>0% (no overlay)</span><span>90% (very dark)</span>
+        </div>
+      </div>
+      <div style={row}><label style={lb}>Eyebrow Text</label><input style={fs} value={getString(content, "eyebrow")} onChange={e => set("eyebrow", e.target.value)} placeholder="e.g. Great Evangelistic Campaign" /></div>
+      <div style={row}><label style={lb}>Heading</label><input style={fs} value={getString(content, "heading")} onChange={e => set("heading", e.target.value)} /></div>
+      <div style={row}><label style={lb}>Subheading</label><textarea style={{ ...fs, minHeight: 70, resize: "vertical" }} value={getString(content, "subheading")} onChange={e => set("subheading", e.target.value)} /></div>
+      <div style={row}><label style={lb}>CTA Button Label (optional)</label><input style={fs} value={getString(content, "cta_label")} onChange={e => set("cta_label", e.target.value)} placeholder="e.g. Register Now" /></div>
+      <div style={row}><label style={lb}>CTA Button Link</label><input style={fs} value={getString(content, "cta_href")} onChange={e => set("cta_href", e.target.value)} placeholder="#contact or /give" /></div>
+    </div>
+  );
+
   if (sec.section_type === "two_col") return (
     <div>
       <div style={row}><label style={lb}>Label (small tag)</label><input style={fs} value={getString(content, "label")} onChange={e => set("label", e.target.value)} placeholder="e.g. Biography" /></div>
@@ -1497,12 +1593,27 @@ function SectionEditor({ sec, onUpdate }: { sec: Section; onUpdate: (sec: Sectio
         </div>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 10 }}>
-        <div><label style={lb}>CTA Label</label><input style={fs} value={getString(content, "cta_label")} onChange={e => set("cta_label", e.target.value)} /></div>
+        <div><label style={lb}>CTA Label <span style={{ fontWeight: 400, color: "#94a3b8" }}>(Enter = new line)</span></label><textarea style={{ ...fs, minHeight: 56, resize: "vertical" }} value={getString(content, "cta_label")} onChange={e => set("cta_label", e.target.value)} /></div>
         <div><label style={lb}>CTA Link</label><input style={fs} value={getString(content, "cta_href")} onChange={e => set("cta_href", e.target.value)} /></div>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
         <div><label style={lb}>Secondary Label</label><input style={fs} value={getString(content, "cta_secondary_label")} onChange={e => set("cta_secondary_label", e.target.value)} /></div>
         <div><label style={lb}>Secondary Link</label><input style={fs} value={getString(content, "cta_secondary_href")} onChange={e => set("cta_secondary_href", e.target.value)} /></div>
+      </div>
+      <div style={{ borderTop: "1px solid #f1f5f9", marginTop: 10, paddingTop: 10, display: "flex", flexDirection: "column", gap: 8 }}>
+        <div><label style={lb}>Column Ratio (desktop)</label>
+          <select style={fs} value={getString(content, "col_ratio") || "1fr 1fr"} onChange={e => set("col_ratio", e.target.value)}>
+            <option value="1fr 1fr">Equal — 50 / 50</option>
+            <option value="2fr 3fr">Narrow image — 40 / 60</option>
+            <option value="3fr 2fr">Wide image — 60 / 40</option>
+            <option value="5fr 7fr">Slight text-heavy — 42 / 58</option>
+          </select>
+        </div>
+        <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", fontSize: 12, fontWeight: 600, color: "#374151" }}>
+          <input type="checkbox" checked={content.sticky_image === true} onChange={e => set("sticky_image", e.target.checked)}
+            style={{ width: 15, height: 15, accentColor: "#2070B8" }} />
+          Sticky Image — keeps the photo visible while the user scrolls long text (ideal for biography pages)
+        </label>
       </div>
     </div>
   );
@@ -1897,6 +2008,7 @@ export default function PageEditor() {
     const maxOrder = sections.reduce((m, s) => Math.max(m, s.sort_order), -1);
     const defaults: Record<string, string> = {
       hero: JSON.stringify({ heading: "New Section", subheading: "", cta_text: "Learn More", cta_link: "/", image: "" }),
+      video_hero: JSON.stringify({ video_src: "", poster: "", eyebrow: "", heading: "Event Title", subheading: "", overlay: 50, cta_label: "", cta_href: "" }),
       text: JSON.stringify({ heading: "New Text Section", body: "Enter your content here.", align: "left" }),
       gallery: JSON.stringify({ heading: "Gallery", items: [] }),
       cta: JSON.stringify({ heading: "Take Action", body: "Your message here.", primary_cta_text: "Get Started", primary_cta_link: "/" }),

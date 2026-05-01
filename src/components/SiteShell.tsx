@@ -2,7 +2,7 @@
 
 import { Suspense } from "react";
 import { usePathname } from "next/navigation";
-import LangPreferenceModal from "./LangPreferenceModal";
+// import LangPreferenceModal from "./LangPreferenceModal";
 import PromoPopup from "./PromoPopup";
 import EventPromoTab from "./EventPromoTab";
 
@@ -25,7 +25,7 @@ export default function SiteShell({
       {navbar}
       <main className="flex-1">{children}</main>
       {footer}
-      <Suspense fallback={null}><LangPreferenceModal /></Suspense>
+      {/* <Suspense fallback={null}><LangPreferenceModal /></Suspense> */}
       <Suspense fallback={null}><PromoPopup /></Suspense>
       <Suspense fallback={null}><EventPromoTab /></Suspense>
     </>
