@@ -1557,7 +1557,10 @@ function SectionEditor({ sec, onUpdate }: { sec: Section; onUpdate: (sec: Sectio
         </div>
       </div>
       <div style={row}><label style={lb}>Eyebrow Text</label><input style={fs} value={getString(content, "eyebrow")} onChange={e => set("eyebrow", e.target.value)} placeholder="e.g. Great Evangelistic Campaign" /></div>
-      <div style={row}><label style={lb}>Heading</label><input style={fs} value={getString(content, "heading")} onChange={e => set("heading", e.target.value)} /></div>
+      <div style={row}>
+        <label style={lb}>Heading <span style={{ fontWeight: 400, color: "#94a3b8" }}>(press Enter for a new line)</span></label>
+        <textarea style={{ ...fs, minHeight: 72, resize: "vertical", fontFamily: "inherit" }} value={getString(content, "heading")} onChange={e => set("heading", e.target.value)} placeholder={"e.g. GRAN\nCAMPAÑA\nEVANGELÍSTICA"} />
+      </div>
       <div style={row}><label style={lb}>Subheading</label><textarea style={{ ...fs, minHeight: 70, resize: "vertical" }} value={getString(content, "subheading")} onChange={e => set("subheading", e.target.value)} /></div>
       <div style={row}><label style={lb}>CTA Button Label (optional)</label><input style={fs} value={getString(content, "cta_label")} onChange={e => set("cta_label", e.target.value)} placeholder="e.g. Register Now" /></div>
       <div style={row}><label style={lb}>CTA Button Link</label><input style={fs} value={getString(content, "cta_href")} onChange={e => set("cta_href", e.target.value)} placeholder="#contact or /give" /></div>

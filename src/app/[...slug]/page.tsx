@@ -806,7 +806,7 @@ function VideoHeroSection({ content }: { content: Record<string, unknown> }) {
       <div style={{ position: "absolute", inset: 0, background: `rgba(0,0,0,${overlay})`, zIndex: 1 }} />
       <div style={{ position: "relative", zIndex: 2, textAlign: "center", padding: "0 24px", maxWidth: 860 }}>
         {eyebrow && <p style={{ fontSize: 12, fontWeight: 700, letterSpacing: "0.15em", textTransform: "uppercase" as const, color: "#f5a623", marginBottom: 14 }}>{eyebrow}</p>}
-        {heading && <h1 style={{ fontSize: "clamp(2rem,5.5vw,3.5rem)", fontWeight: 800, color: "#fff", lineHeight: 1.15, margin: "0 0 18px" }}>{heading}</h1>}
+        {heading && <h1 style={{ fontSize: "clamp(2rem,5.5vw,3.5rem)", fontWeight: 800, color: "#fff", lineHeight: 1.15, margin: "0 0 18px", whiteSpace: "pre-line" }}>{heading}</h1>}
         <div style={{ width: 56, height: 4, backgroundColor: "#C0185A", borderRadius: 2, margin: "0 auto" }} />
         {subheading && <p style={{ marginTop: 22, fontSize: "clamp(1rem,2vw,1.2rem)", color: "rgba(255,255,255,0.82)", maxWidth: 600, margin: "22px auto 0", lineHeight: 1.65 }}>{subheading}</p>}
         {ctaLabel && ctaHref && (
