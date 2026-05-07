@@ -40,11 +40,11 @@ const DEFAULT_NAV_ITEMS: NavItemData[] = [
   { label: "CONTACT", href: "/contact" },
 ];
 
-const socialLinks = [
-  { icon: YoutubeIcon, href: "https://www.youtube.com/@DrWesleyPaul", label: "YouTube" },
-  { icon: InstagramIcon, href: "https://www.instagram.com/drwesleypaul/", label: "Instagram" },
-  { icon: FacebookIcon, href: "https://www.facebook.com/wesleypaul.org/", label: "Facebook" },
-];
+const DEFAULT_SOCIAL = {
+  youtube:   "https://www.youtube.com/@DrWesleyPaul",
+  instagram: "https://www.instagram.com/drwesleypaul/",
+  facebook:  "https://www.facebook.com/wesleypaul.org/",
+};
 
 const NAV_BG     = "#ffffff";
 const NAV_BORDER = "rgba(0,0,0,0.07)";
@@ -193,7 +193,14 @@ function MobileLangPanel({
   );
 }
 
-export default function Navbar({ items, logo }: { items?: NavItemData[]; logo?: string }) {
+export interface SocialUrls { facebook?: string; youtube?: string; instagram?: string; }
+
+export default function Navbar({ items, logo, socialUrls }: { items?: NavItemData[]; logo?: string; socialUrls?: SocialUrls }) {
+  const socialLinks = [
+    { icon: YoutubeIcon,   href: socialUrls?.youtube   || DEFAULT_SOCIAL.youtube,   label: "YouTube" },
+    { icon: InstagramIcon, href: socialUrls?.instagram || DEFAULT_SOCIAL.instagram, label: "Instagram" },
+    { icon: FacebookIcon,  href: socialUrls?.facebook  || DEFAULT_SOCIAL.facebook,  label: "Facebook" },
+  ];
   const baseItems = items && items.length > 0 ? items : DEFAULT_NAV_ITEMS;
   const [displayItems, setDisplayItems] = useState<NavItemData[]>(baseItems);
   const [mobileOpen, setMobileOpen] = useState(false);

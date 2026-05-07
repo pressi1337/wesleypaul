@@ -1,15 +1,18 @@
 import { NextRequest } from "next/server";
 import pool from "@/lib/db";
-import { geolocateIP, isBot } from "@/lib/ip-geo";
+import { geolocateIP, isBot, normalizeIP } from "@/lib/ip-geo";
 import { ensureTables } from "@/lib/init-db";
 
 function getClientIP(req: NextRequest): string {
-  return (
-    req.headers.get("x-forwarded-for")?.split(",")[0].trim() ||
-    req.headers.get("x-real-ip") ||
-    req.headers.get("cf-connecting-ip") ||
-    "unknown"
-  );
+  // x-forwarded-for may contain "client, proxy1, proxy2" — take leftmost (real client)
+  const xff = req.headers.get("x-forwarded-for");
+  if (xff) {
+    const first = xff.split(",")[0].trim();
+    if (first) return normalizeIP(first);
+  }
+  const realIp = req.headers.get("x-real-ip") || req.headers.get("cf-connecting-ip");
+  if (realIp) return normalizeIP(realIp);
+  return "unknown";
 }
 
 // POST — record a new page visit

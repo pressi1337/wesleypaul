@@ -20,6 +20,17 @@ interface CropState {
   naturalWidth: number; naturalHeight: number;
 }
 
+interface UploadState {
+  active: boolean;
+  total: number;
+  done: number;        // fully completed files
+  currentName: string;
+  currentPct: number;  // 0–100 byte progress for current file
+  failed: number;
+}
+
+const UPLOAD_IDLE: UploadState = { active: false, total: 0, done: 0, currentName: "", currentPct: 0, failed: 0 };
+
 function formatBytes(b: number) {
   if (b < 1024) return `${b} B`;
   if (b < 1024 * 1024) return `${(b / 1024).toFixed(1)} KB`;
@@ -28,6 +39,91 @@ function formatBytes(b: number) {
 
 const isVideo = (m: MediaItem) => m.mime_type.startsWith("video/");
 const isImage = (m: MediaItem) => m.mime_type.startsWith("image/");
+
+/* ── Full-screen upload overlay ───────────────────────────────────────── */
+function UploadOverlay({ state }: { state: UploadState }) {
+  // overall progress: each file is worth (100/total) points; add partial current-file progress
+  const perFile   = state.total > 0 ? 100 / state.total : 0;
+  const overall   = Math.min(100, Math.round(state.done * perFile + (state.currentPct * perFile) / 100));
+  const remaining = state.total - state.done;
+
+  return (
+    <div style={{
+      position: "fixed", inset: 0, zIndex: 999999,
+      background: "rgba(10,21,35,0.88)", backdropFilter: "blur(6px)",
+      display: "flex", alignItems: "center", justifyContent: "center",
+      padding: 24,
+    }}>
+      <div style={{
+        background: "#fff", borderRadius: 16, padding: "36px 40px",
+        width: "100%", maxWidth: 460, boxShadow: "0 24px 60px rgba(0,0,0,0.4)",
+        textAlign: "center",
+      }}>
+        {/* Spinner */}
+        <div style={{
+          width: 52, height: 52, borderRadius: "50%",
+          border: "4px solid #e2e8f0", borderTopColor: "#2070B8",
+          margin: "0 auto 20px",
+          animation: "rte-spin 0.8s linear infinite",
+        }} />
+
+        <h2 style={{ fontSize: 18, fontWeight: 800, color: "#0f172a", margin: "0 0 6px" }}>
+          Uploading Files…
+        </h2>
+        <p style={{ fontSize: 13, color: "#64748b", margin: "0 0 24px" }}>
+          {state.done} of {state.total} file{state.total !== 1 ? "s" : ""} done
+          {state.failed > 0 && <span style={{ color: "#dc2626" }}> · {state.failed} failed</span>}
+        </p>
+
+        {/* Current file name */}
+        {state.currentName && (
+          <p style={{
+            fontSize: 12, color: "#374151", fontWeight: 600,
+            background: "#f8fafc", borderRadius: 7, padding: "7px 12px",
+            marginBottom: 16, overflow: "hidden", textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+          }}>
+            {state.currentName}
+          </p>
+        )}
+
+        {/* Per-file progress bar */}
+        <div style={{ marginBottom: 10 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "#94a3b8", marginBottom: 5 }}>
+            <span>Current file</span><span>{state.currentPct}%</span>
+          </div>
+          <div style={{ height: 6, background: "#e2e8f0", borderRadius: 99 }}>
+            <div style={{ height: "100%", borderRadius: 99, background: "#2070B8", width: `${state.currentPct}%`, transition: "width 0.15s" }} />
+          </div>
+        </div>
+
+        {/* Overall progress bar */}
+        <div style={{ marginBottom: 24 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "#94a3b8", marginBottom: 5 }}>
+            <span>Overall</span><span>{overall}%</span>
+          </div>
+          <div style={{ height: 10, background: "#e2e8f0", borderRadius: 99 }}>
+            <div style={{ height: "100%", borderRadius: 99, background: "linear-gradient(90deg,#2070B8,#C0185A)", width: `${overall}%`, transition: "width 0.15s" }} />
+          </div>
+        </div>
+
+        {/* Warning */}
+        <div style={{
+          background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 9,
+          padding: "10px 14px", display: "flex", alignItems: "center", gap: 10,
+        }}>
+          <span style={{ fontSize: 18 }}>⚠️</span>
+          <p style={{ fontSize: 12, color: "#92400e", fontWeight: 600, margin: 0, textAlign: "left" }}>
+            Please don&rsquo;t close or refresh this tab.<br />
+            <span style={{ fontWeight: 400 }}>{remaining} file{remaining !== 1 ? "s" : ""} still uploading.</span>
+          </p>
+        </div>
+      </div>
+
+      <style>{`@keyframes rte-spin { to { transform: rotate(360deg); } }`}</style>
+    </div>
+  );
+}
 
 /* ── Video preview modal ──────────────────────────────────────────────── */
 function VideoModal({ item, onClose }: { item: MediaItem; onClose: () => void }) {
@@ -60,24 +156,24 @@ function VideoModal({ item, onClose }: { item: MediaItem; onClose: () => void })
 }
 
 export default function MediaPage() {
-  const [media, setMedia]         = useState<MediaItem[]>([]);
-  const [loading, setLoading]     = useState(true);
-  const [uploading, setUploading] = useState(false);
-  const [crop, setCrop]           = useState<CropState | null>(null);
-  const [dragOver, setDragOver]   = useState(false);
-  const [copiedId, setCopiedId]   = useState<number | null>(null);
-  const [editAlt, setEditAlt]     = useState<{ id: number; value: string } | null>(null);
-  const [editName, setEditName]   = useState<{ id: number; value: string } | null>(null);
+  const [media, setMedia]               = useState<MediaItem[]>([]);
+  const [loading, setLoading]           = useState(true);
+  const [uploadState, setUploadState]   = useState<UploadState>(UPLOAD_IDLE);
+  const [crop, setCrop]                 = useState<CropState | null>(null);
+  const [dragOver, setDragOver]         = useState(false);
+  const [copiedId, setCopiedId]         = useState<number | null>(null);
+  const [editAlt, setEditAlt]           = useState<{ id: number; value: string } | null>(null);
+  const [editName, setEditName]         = useState<{ id: number; value: string } | null>(null);
   const [videoPreview, setVideoPreview] = useState<MediaItem | null>(null);
-  const [search, setSearch]       = useState("");
-  const [toast, setToast]         = useState<string | null>(null);
+  const [search, setSearch]             = useState("");
+  const [toast, setToast]               = useState<string | null>(null);
   const fileInputRef   = useRef<HTMLInputElement>(null);
   const cropPreviewRef = useRef<HTMLCanvasElement>(null);
   const imgRef         = useRef<HTMLImageElement>(null);
 
   const showToast = (msg: string, error = false) => {
     setToast(error ? `⚠ ${msg}` : msg);
-    setTimeout(() => setToast(null), 3000);
+    setTimeout(() => setToast(null), 3500);
   };
 
   const loadMedia = useCallback(async () => {
@@ -99,6 +195,14 @@ export default function MediaPage() {
     }
   }, [loading, loadMedia]);
 
+  // Warn before closing while upload is active
+  useEffect(() => {
+    if (!uploadState.active) return;
+    const handler = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = ""; };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [uploadState.active]);
+
   useEffect(() => {
     if (!crop || !cropPreviewRef.current) return;
     const canvas = cropPreviewRef.current;
@@ -109,13 +213,65 @@ export default function MediaPage() {
     img.src = crop.dataUrl;
   }, [crop]);
 
-  const handleFileSelect = (file: File) => {
+  /* ── Single-file XHR upload with byte-level progress ─────────────────── */
+  const uploadOneFile = (blob: Blob | File, filename: string, onProgress: (pct: number) => void): Promise<void> => {
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      const fd  = new FormData();
+      fd.append("file", blob, filename);
+      xhr.upload.onprogress = e => {
+        if (e.lengthComputable) onProgress(Math.round((e.loaded / e.total) * 100));
+      };
+      xhr.onload  = () => xhr.status >= 200 && xhr.status < 300 ? resolve() : reject(new Error("Upload failed"));
+      xhr.onerror = () => reject(new Error("Network error"));
+      xhr.open("POST", "/api/admin/media");
+      xhr.send(fd);
+    });
+  };
+
+  /* ── Upload a queue of files with full-screen progress overlay ────────── */
+  const uploadQueue = async (files: File[]) => {
+    if (files.length === 0) return;
+    setUploadState({ active: true, total: files.length, done: 0, currentName: "", currentPct: 0, failed: 0 });
+
+    let failed = 0;
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      setUploadState(s => ({ ...s, currentName: file.name, currentPct: 0 }));
+      try {
+        await uploadOneFile(file, file.name, pct =>
+          setUploadState(s => ({ ...s, currentPct: pct }))
+        );
+      } catch {
+        failed++;
+        setUploadState(s => ({ ...s, failed: s.failed + 1 }));
+      }
+      setUploadState(s => ({ ...s, done: s.done + 1, currentPct: 100 }));
+    }
+
+    setUploadState(UPLOAD_IDLE);
+    await loadMedia();
+    showToast(failed > 0
+      ? `${files.length - failed} uploaded, ${failed} failed.`
+      : `${files.length} file${files.length !== 1 ? "s" : ""} uploaded successfully!`
+    , failed > 0);
+  };
+
+  /* ── Single image: show crop UI; single video: upload directly; multiple: queue ── */
+  const handleFilesSelected = (files: File[]) => {
+    if (files.length === 0) return;
+    if (files.length > 1) {
+      uploadQueue(files);
+      return;
+    }
+    // single file
+    const file = files[0];
     if (file.type.startsWith("video/")) {
-      // Videos: upload directly without crop
-      uploadFile(file, file.name);
+      uploadQueue([file]);
       return;
     }
     if (!file.type.startsWith("image/")) { showToast("Unsupported file type.", true); return; }
+    // show crop UI for single image
     const reader = new FileReader();
     reader.onload = e => {
       const dataUrl = e.target?.result as string;
@@ -128,22 +284,27 @@ export default function MediaPage() {
 
   const handleDrop = (e: DragEvent<HTMLDivElement>) => {
     e.preventDefault(); setDragOver(false);
-    const file = e.dataTransfer.files[0];
-    if (file) handleFileSelect(file);
+    const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith("image/") || f.type.startsWith("video/"));
+    handleFilesSelected(files);
   };
 
+  /* ── Crop-flow upload (wraps single file with overlay) ─────────────────── */
   const uploadFile = async (blob: Blob | File, filename: string) => {
-    setUploading(true);
+    setCrop(null);
+    setUploadState({ active: true, total: 1, done: 0, currentName: filename, currentPct: 0, failed: 0 });
     try {
-      const fd = new FormData();
-      fd.append("file", blob, filename);
-      const res = await fetch("/api/admin/media", { method: "POST", body: fd });
-      if (!res.ok) throw new Error("Upload failed");
-      showToast("Uploaded successfully!");
-      setCrop(null);
+      await uploadOneFile(blob, filename, pct =>
+        setUploadState(s => ({ ...s, currentPct: pct }))
+      );
+      setUploadState(s => ({ ...s, done: 1 }));
+    } catch {
+      setUploadState(s => ({ ...s, failed: 1 }));
+      showToast("Upload failed.", true);
+    } finally {
+      setUploadState(UPLOAD_IDLE);
       await loadMedia();
-    } catch { showToast("Upload failed.", true); }
-    finally { setUploading(false); }
+    }
+    showToast("Uploaded successfully!");
   };
 
   const uploadCropped = () => {
@@ -200,6 +361,9 @@ export default function MediaPage() {
 
   return (
     <div style={{ maxWidth: 1200 }}>
+      {/* Full-screen upload overlay */}
+      {uploadState.active && <UploadOverlay state={uploadState} />}
+
       {toast && (
         <div style={{ position: "fixed", top: 16, right: 20, zIndex: 9999, background: toast.startsWith("⚠") ? "#dc2626" : "#16a34a", color: "#fff", padding: "10px 18px", borderRadius: 9, fontSize: 13.5, fontWeight: 500, boxShadow: "0 4px 16px rgba(0,0,0,0.18)", display: "flex", alignItems: "center", gap: 8 }}>
           <Check size={15} /> {toast}
@@ -215,7 +379,6 @@ export default function MediaPage() {
           <p style={{ fontSize: 13.5, color: "#64748b", margin: "4px 0 0" }}>{filtered.length} of {media.length} file{media.length !== 1 ? "s" : ""}</p>
         </div>
         <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-          {/* Search */}
           <div style={{ position: "relative" }}>
             <Search size={14} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "#94a3b8" }} />
             <input
@@ -242,13 +405,23 @@ export default function MediaPage() {
         >
           <Upload size={32} style={{ color: dragOver ? "#2070B8" : "#cbd5e1", margin: "0 auto 10px", display: "block" }} />
           <p style={{ fontWeight: 700, fontSize: 14, color: "#374151", margin: "0 0 3px" }}>Drag & drop images or videos here</p>
-          <p style={{ fontSize: 12, color: "#94a3b8", margin: 0 }}>or click to select files</p>
-          <input ref={fileInputRef} type="file" accept="image/*,video/*" style={{ display: "none" }}
-            onChange={(e: ChangeEvent<HTMLInputElement>) => { const f = e.target.files?.[0]; if (f) handleFileSelect(f); e.target.value = ""; }} />
+          <p style={{ fontSize: 12, color: "#94a3b8", margin: 0 }}>or click to browse — select multiple files at once</p>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*,video/*"
+            multiple
+            style={{ display: "none" }}
+            onChange={(e: ChangeEvent<HTMLInputElement>) => {
+              const files = Array.from(e.target.files || []);
+              handleFilesSelected(files);
+              e.target.value = "";
+            }}
+          />
         </div>
       )}
 
-      {/* Crop interface */}
+      {/* Crop interface (single image only) */}
       {crop && (
         <div style={{ ...card, padding: 24, marginBottom: 20 }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
@@ -277,8 +450,8 @@ export default function MediaPage() {
                 <canvas ref={cropPreviewRef} width={200} height={200} style={{ borderRadius: 8, border: "1px solid #e2e8f0", display: "block" }} />
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
-                <button onClick={uploadCropped} disabled={uploading} style={{ padding: "9px 14px", background: "#2070B8", color: "#fff", border: "none", borderRadius: 7, fontWeight: 700, fontSize: 13, cursor: uploading?"not-allowed":"pointer" }}>{uploading ? "Uploading…" : "Upload Cropped"}</button>
-                <button onClick={() => uploadFile(crop.file, crop.file.name)} disabled={uploading} style={{ padding: "9px 14px", background: "#f8fafc", color: "#374151", border: "1px solid #e2e8f0", borderRadius: 7, fontWeight: 600, fontSize: 13, cursor: uploading?"not-allowed":"pointer" }}>Upload Original</button>
+                <button onClick={uploadCropped} style={{ padding: "9px 14px", background: "#2070B8", color: "#fff", border: "none", borderRadius: 7, fontWeight: 700, fontSize: 13, cursor: "pointer" }}>Upload Cropped</button>
+                <button onClick={() => uploadFile(crop.file, crop.file.name)} style={{ padding: "9px 14px", background: "#f8fafc", color: "#374151", border: "1px solid #e2e8f0", borderRadius: 7, fontWeight: 600, fontSize: 13, cursor: "pointer" }}>Upload Original</button>
                 <button onClick={() => setCrop(null)} style={{ padding: "9px 14px", background: "transparent", color: "#94a3b8", border: "none", borderRadius: 7, fontWeight: 600, fontSize: 13, cursor: "pointer" }}>Cancel</button>
               </div>
             </div>
@@ -298,7 +471,6 @@ export default function MediaPage() {
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: 14 }}>
           {filtered.map(item => (
             <div key={item.id} style={card}>
-              {/* Thumbnail / preview */}
               <div style={{ position: "relative", height: 160, background: "#0d1523", overflow: "hidden" }}>
                 {isImage(item) ? (
                   // eslint-disable-next-line @next/next/no-img-element
@@ -309,7 +481,6 @@ export default function MediaPage() {
                     {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
                     <video src={item.file_path} preload="metadata" muted
                       style={{ width: "100%", height: "100%", objectFit: "cover", display: "block", opacity: 0.7 }} />
-                    {/* Play overlay */}
                     <button
                       onClick={() => setVideoPreview(item)}
                       style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", background: "none", border: "none", cursor: "pointer", gap: 6 }}
@@ -330,7 +501,6 @@ export default function MediaPage() {
               </div>
 
               <div style={{ padding: "11px 13px" }}>
-                {/* Filename — inline rename */}
                 {editName?.id === item.id ? (
                   <div style={{ display: "flex", gap: 5, marginBottom: 6 }}>
                     <input autoFocus value={editName.value} onChange={e => setEditName({ id: item.id, value: e.target.value })}
@@ -351,7 +521,6 @@ export default function MediaPage() {
 
                 <p style={{ fontSize: 11, color: "#94a3b8", margin: "0 0 9px" }}>{formatBytes(item.file_size)} · {item.mime_type.split("/")[1]?.toUpperCase()}</p>
 
-                {/* Alt text (images only) */}
                 {isImage(item) && (
                   editAlt?.id === item.id ? (
                     <input autoFocus style={{ width: "100%", padding: "5px 7px", border: "1px solid #2070B8", borderRadius: 5, fontSize: 12, fontFamily: "inherit", marginBottom: 9, boxSizing: "border-box" }}
@@ -367,7 +536,6 @@ export default function MediaPage() {
                   )
                 )}
 
-                {/* Actions */}
                 <div style={{ display: "flex", gap: 5 }}>
                   {isVideo(item) && (
                     <button onClick={() => setVideoPreview(item)}

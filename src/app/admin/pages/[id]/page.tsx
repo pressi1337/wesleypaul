@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { LANG_OPTIONS } from "@/lib/languages";
 import RichTextEditor from "@/components/RichTextEditor";
+import CKEditorField from "@/components/CKEditorField";
 
 // ── Interfaces ───────────────────────────────────────────────────────────────
 interface Section { id: number; section_type: string; sort_order: number; content_json: string; }
@@ -1390,7 +1391,7 @@ function SectionEditor({ sec, onUpdate }: { sec: Section; onUpdate: (sec: Sectio
   if (sec.section_type === "text") return (
     <div>
       <div style={row}><label style={lb}>Heading</label><input style={fs} value={getString(content, "heading")} onChange={e => set("heading", e.target.value)} /></div>
-      <div style={row}><label style={lb}>Body</label><textarea style={{ ...fs, minHeight: 120, resize: "vertical" }} value={getString(content, "body")} onChange={e => set("body", e.target.value)} /></div>
+      <div style={row}><label style={{ ...lb, marginBottom: 6 }}>Body</label><CKEditorField value={getString(content, "body")} onChange={v => set("body", v)} minHeight={200} /></div>
       <div><label style={lb}>Alignment</label>
         <select style={fs} value={getString(content, "align") || "left"} onChange={e => set("align", e.target.value)}>
           <option value="left">Left</option><option value="center">Center</option>
@@ -1435,7 +1436,7 @@ function SectionEditor({ sec, onUpdate }: { sec: Section; onUpdate: (sec: Sectio
   if (sec.section_type === "cta") return (
     <div>
       <div style={row}><label style={lb}>Heading</label><input style={fs} value={getString(content, "heading")} onChange={e => set("heading", e.target.value)} /></div>
-      <div style={row}><label style={lb}>Body</label><textarea style={{ ...fs, minHeight: 80, resize: "vertical" }} value={getString(content, "body")} onChange={e => set("body", e.target.value)} /></div>
+      <div style={row}><label style={{ ...lb, marginBottom: 6 }}>Body</label><CKEditorField value={getString(content, "body")} onChange={v => set("body", v)} minHeight={160} /></div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 10 }}>
         <div><label style={lb}>Primary Text</label><input style={fs} value={getString(content, "primary_cta_text")} onChange={e => set("primary_cta_text", e.target.value)} /></div>
         <div><label style={lb}>Primary Link</label><input style={fs} value={getString(content, "primary_cta_link")} onChange={e => set("primary_cta_link", e.target.value)} /></div>
@@ -1567,7 +1568,7 @@ function SectionEditor({ sec, onUpdate }: { sec: Section; onUpdate: (sec: Sectio
     <div>
       <div style={row}><label style={lb}>Label (small tag)</label><input style={fs} value={getString(content, "label")} onChange={e => set("label", e.target.value)} placeholder="e.g. Biography" /></div>
       <div style={row}><label style={lb}>Heading</label><input style={fs} value={getString(content, "heading")} onChange={e => set("heading", e.target.value)} /></div>
-      <div style={row}><label style={lb}>Body (separate paragraphs with blank line)</label><textarea style={{ ...fs, minHeight: 140, resize: "vertical" }} value={getString(content, "body")} onChange={e => set("body", e.target.value)} /></div>
+      <div style={row}><label style={{ ...lb, marginBottom: 6 }}>Body</label><CKEditorField value={getString(content, "body")} onChange={v => set("body", v)} minHeight={240} /></div>
       <div style={row}><label style={lb}>Image</label>
         <PageImageControlPanel
           value={getString(content, "image")}

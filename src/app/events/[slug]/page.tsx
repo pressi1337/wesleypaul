@@ -7,6 +7,7 @@ import ContactFormClient from "@/components/ContactFormClient";
 import BookingFormClient from "@/components/BookingFormClient";
 import CustomFormRenderer from "@/components/CustomFormRenderer";
 import VideoGridClient from "@/components/VideoGridClient";
+import StickyTwoCol from "@/components/StickyTwoCol";
 import pool from "@/lib/db";
 import { SUPPORTED_LANG_CODES } from "@/lib/languages";
 
@@ -112,6 +113,20 @@ function PageHeaderSection({ content }: { content: Record<string, unknown> }) {
   );
 }
 
+// Render body as HTML (CKEditor output) or as plain-text paragraphs (legacy)
+function BodyContent({ body, color, fontSize = 16 }: { body: string; color: string; fontSize?: number }) {
+  const isHtml = /<[a-z][\s\S]*>/i.test(body);
+  if (isHtml) return (
+    <div style={{ color, lineHeight: 1.9, fontSize }}
+      dangerouslySetInnerHTML={{ __html: body }} />
+  );
+  return (
+    <div style={{ color, lineHeight: 1.9, fontSize }}>
+      {body.split("\n").map((p, i) => p.trim() ? <p key={i} style={{ margin: "0 0 16px" }}>{p}</p> : null)}
+    </div>
+  );
+}
+
 function TextSection({ content }: { content: Record<string, unknown> }) {
   const heading = getString(content, "heading"), body = getString(content, "body"), align = getString(content, "align") || "left";
   const hasBg = !!getString(content, "bg_image");
@@ -121,9 +136,7 @@ function TextSection({ content }: { content: Record<string, unknown> }) {
       <BgImageOverlay content={content} />
       <div style={{ maxWidth: 900, margin: "0 auto", textAlign: align === "center" ? "center" : "left", position: "relative", zIndex: 1 }}>
         {heading && <h2 style={{ fontSize: "clamp(22px,3vw,36px)", fontWeight: 700, color: hasBg ? "#fff" : "#2070B8", margin: "0 0 20px" }}>{heading}</h2>}
-        {body && <div style={{ color: hasBg ? "rgba(255,255,255,0.88)" : "#4a5568", lineHeight: 1.9, fontSize: 16 }}>
-          {body.split("\n").map((p, i) => p.trim() ? <p key={i} style={{ margin: "0 0 16px" }}>{p}</p> : null)}
-        </div>}
+        {body && <BodyContent body={body} color={hasBg ? "rgba(255,255,255,0.88)" : "#4a5568"} />}
       </div>
     </section>
   );
@@ -185,12 +198,24 @@ function CardsGridSection({ content }: { content: Record<string, unknown> }) {
 function TwoColSection({ content }: { content: Record<string, unknown> }) {
   const label = getString(content, "label"), heading = getString(content, "heading"), body = getString(content, "body");
   const image = getString(content, "image"), imageSide = getString(content, "image_side") || "left";
-  const imageZoom = Number(content.image_zoom ?? 100), imagePosition = getString(content, "image_position") || "center";
+  const imageZoom = Number(content.image_zoom ?? 100), imagePosition = getString(content, "image_position") || "top center";
+  const imageFit = (getString(content, "image_fit") || "cover") as "cover" | "contain";
   const ctaLabel = getString(content, "cta_label"), ctaHref = getString(content, "cta_href");
   const ctaSecondaryLabel = getString(content, "cta_secondary_label"), ctaSecondaryHref = getString(content, "cta_secondary_href");
   const imgCol = image ? (
-    <div style={{ position: "relative", borderRadius: 8, overflow: "hidden", minHeight: 400, backgroundColor: "#1a2a3a", boxShadow: "0 8px 30px rgba(0,0,0,0.15)" }}>
-      <Image src={image} alt={heading || "image"} fill style={{ objectFit: "cover", objectPosition: imagePosition, transform: imageZoom > 100 ? `scale(${imageZoom / 100})` : undefined, transformOrigin: imagePosition }} />
+    <div style={{
+      borderRadius: 10, overflow: "hidden",
+      boxShadow: "0 10px 40px rgba(0,0,0,0.15)",
+    }}>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={image} alt={heading || "image"}
+        style={{
+          width: "100%",
+          height: "auto",
+          display: "block",
+        }}
+      />
     </div>
   ) : null;
   const textCol = (
@@ -198,7 +223,7 @@ function TwoColSection({ content }: { content: Record<string, unknown> }) {
       {label && <span className="section-label">{label}</span>}
       {heading && <h2 className="section-title" style={{ fontSize: "1.8rem", marginBottom: 16 }}>{heading}</h2>}
       <div className="section-divider-left" />
-      {body && body.split("\n\n").map((p, i) => <p key={i} style={{ color: "#6c757d", lineHeight: 1.8, marginBottom: 16 }}>{p}</p>)}
+      {body && <BodyContent body={body} color="#6c757d" />}
       {(ctaLabel || ctaSecondaryLabel) && (
         <div style={{ display: "flex", flexWrap: "wrap", gap: 12, marginTop: 8 }}>
           {ctaLabel && ctaHref && <a href={ctaHref} className="btn-primary" style={{ whiteSpace: "pre-line" }}>{ctaLabel}</a>}
@@ -210,9 +235,11 @@ function TwoColSection({ content }: { content: Record<string, unknown> }) {
   return (
     <section style={{ padding: "80px 24px", backgroundColor: "#f8f9fa" }}>
       <div style={{ maxWidth: 1280, margin: "0 auto" }}>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,420px),1fr))", gap: "3rem", alignItems: "center" }}>
-          {imageSide === "left" ? <>{imgCol}{textCol}</> : <>{textCol}{imgCol}</>}
-        </div>
+        <StickyTwoCol
+          imageSlot={imgCol}
+          textSlot={textCol}
+          imageSide={imageSide as "left" | "right"}
+        />
       </div>
     </section>
   );

@@ -118,7 +118,10 @@ function TextSection({ content }: { content: Record<string, unknown> }) {
   return (
     <section style={{ maxWidth: 900, margin: "0 auto", padding: "60px 24px", textAlign: align === "center" ? "center" : "left" }}>
       {heading && <h2 style={{ fontSize: "clamp(22px,3vw,36px)", fontWeight: 700, color: "#2070B8", margin: "0 0 20px" }}>{heading}</h2>}
-      {body && <div style={{ color: "#4a5568", lineHeight: 1.8, fontSize: 17 }}>{body.split("\n").map((p, i) => p.trim() ? <p key={i} style={{ margin: "0 0 16px" }}>{p}</p> : null)}</div>}
+      {body && (/<[a-z][\s\S]*>/i.test(body)
+        ? <div style={{ color: "#4a5568", lineHeight: 1.8, fontSize: 17 }} dangerouslySetInnerHTML={{ __html: body }} />
+        : <div style={{ color: "#4a5568", lineHeight: 1.8, fontSize: 17 }}>{body.split("\n").map((p, i) => p.trim() ? <p key={i} style={{ margin: "0 0 16px" }}>{p}</p> : null)}</div>
+      )}
     </section>
   );
 }
@@ -226,7 +229,10 @@ function TwoColSection({ content }: { content: Record<string, unknown> }) {
       {label && <span className="section-label">{label}</span>}
       {heading && <h2 className="section-title" style={{ fontSize: "1.8rem", marginBottom: 16 }}>{heading}</h2>}
       <div className="section-divider-left" />
-      {body && body.split("\n\n").map((p, i) => <p key={i} style={{ color: "#6c757d", lineHeight: 1.8, marginBottom: 16 }}>{p}</p>)}
+      {body && (/<[a-z][\s\S]*>/i.test(body)
+        ? <div style={{ color: "#6c757d", lineHeight: 1.8 }} dangerouslySetInnerHTML={{ __html: body }} />
+        : body.split("\n\n").map((p, i) => <p key={i} style={{ color: "#6c757d", lineHeight: 1.8, marginBottom: 16 }}>{p}</p>)
+      )}
       {(ctaLabel || ctaSecondaryLabel) && <div style={{ display: "flex", flexWrap: "wrap", gap: 12, marginTop: 8 }}>{ctaLabel && ctaHref && <a href={ctaHref} className="btn-primary">{ctaLabel}</a>}{ctaSecondaryLabel && ctaSecondaryHref && <a href={ctaSecondaryHref} className="btn-outline-accent">{ctaSecondaryLabel}</a>}</div>}
     </div>
   );
@@ -236,6 +242,29 @@ function TwoColSection({ content }: { content: Record<string, unknown> }) {
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,420px),1fr))", gap: "3rem", alignItems: "center" }}>
           {imageSide === "left" ? <>{imgCol}{textCol}</> : <>{textCol}{imgCol}</>}
         </div>
+      </div>
+    </section>
+  );
+}
+
+interface GalleryItem { image?: string; caption?: string; }
+function GallerySection({ content }: { content: Record<string, unknown> }) {
+  const heading = getString(content, "heading");
+  const items = getArray<GalleryItem>(content, "items");
+  return (
+    <section style={{ maxWidth: 1100, margin: "0 auto", padding: "60px 24px" }}>
+      {heading && <h2 style={{ fontSize: "clamp(22px,3vw,36px)", fontWeight: 700, color: "#2070B8", margin: "0 0 28px", textAlign: "center" }}>{heading}</h2>}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: 16 }}>
+        {items.map((item, i) => (
+          <div key={i} style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {item.image && (
+              <div style={{ position: "relative", aspectRatio: "1/1", borderRadius: 10, overflow: "hidden" }}>
+                <Image src={item.image} alt={item.caption || `Gallery image ${i + 1}`} fill style={{ objectFit: "cover" }} />
+              </div>
+            )}
+            {item.caption && <p style={{ fontSize: 13.5, color: "#64748b", textAlign: "center", margin: 0 }}>{item.caption}</p>}
+          </div>
+        ))}
       </div>
     </section>
   );
@@ -290,6 +319,7 @@ function renderSection(section: Section) {
   switch (section.section_type) {
     case "page_header":  return <PageHeaderSection key={section.id} content={content} />;
     case "video_hero":   return <VideoHeroSection key={section.id} content={content} />;
+    case "gallery":      return <GallerySection key={section.id} content={content} />;
     case "text":         return <TextSection key={section.id} content={content} />;
     case "cards_grid":   return <CardsGridSection key={section.id} content={content} />;
     case "two_col":      return <TwoColSection key={section.id} content={content} />;

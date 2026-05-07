@@ -208,7 +208,9 @@ function TextSection({ content }: { content: Record<string, unknown> }) {
         {heading && <h2 style={{ fontSize: "clamp(22px, 3vw, 36px)", fontWeight: 700, color: hasBg ? "#fff" : "#2070B8", margin: "0 0 20px" }}>{heading}</h2>}
         {body && (
           <div style={{ color: hasBg ? "rgba(255,255,255,0.85)" : "#4a5568", lineHeight: 1.8, fontSize: 17 }}>
-            {body.split("\n").map((para, i) => para.trim() ? <p key={i} style={{ margin: "0 0 16px" }}>{para}</p> : null)}
+            {/<[a-z][\s\S]*>/i.test(body)
+              ? <span dangerouslySetInnerHTML={{ __html: body }} />
+              : body.split("\n").map((para, i) => para.trim() ? <p key={i} style={{ margin: "0 0 16px" }}>{para}</p> : null)}
           </div>
         )}
       </div>
@@ -352,9 +354,10 @@ function TwoColSection({ content }: { content: Record<string, unknown> }) {
       {label && <span className="section-label">{label}</span>}
       {heading && <h2 className="section-title" style={{ fontSize: "1.8rem", marginBottom: 16 }}>{heading}</h2>}
       <div className="section-divider-left" />
-      {body && body.split("\n\n").map((para, i) => (
-        <p key={i} style={{ color: "#6c757d", lineHeight: 1.8, marginBottom: 16 }}>{para}</p>
-      ))}
+      {body && (/<[a-z][\s\S]*>/i.test(body)
+        ? <div style={{ color: "#6c757d", lineHeight: 1.8 }} dangerouslySetInnerHTML={{ __html: body }} />
+        : body.split("\n\n").map((para, i) => <p key={i} style={{ color: "#6c757d", lineHeight: 1.8, marginBottom: 16 }}>{para}</p>)
+      )}
       {(ctaLabel || ctaSecondaryLabel) && (
         <div style={{ display: "flex", flexWrap: "wrap", gap: 12, marginTop: 8 }}>
           {ctaLabel && ctaHref && <a href={ctaHref} className="btn-primary" style={{ whiteSpace: "pre-line" }}>{ctaLabel}</a>}
@@ -364,13 +367,66 @@ function TwoColSection({ content }: { content: Record<string, unknown> }) {
     </div>
   );
 
+  // On mobile, if image is on the left it stacks first (useless for QR codes).
+  // Reverse order so text/CTA appears above the image on small screens.
+  const reverseOnMobile = imageSide === "left";
+  // Show a prominent mobile-only donate button when the CTA is a PayPal link
+  const isPayPalCta = !!(ctaHref && ctaHref.toLowerCase().includes("paypal"));
+
   return (
     <section style={{ padding: "80px 24px", backgroundColor: "#f8f9fa" }}>
+      <style>{`
+        .tc-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 380px), 1fr)); gap: 3rem; align-items: ${stickyImage ? "start" : "center"}; }
+        ${stickyImage ? `@media(min-width:860px){.two-col-sticky{grid-template-columns:${colRatio} !important}.two-col-sticky-img{position:sticky;top:88px;align-self:start}}` : ""}
+        ${reverseOnMobile ? "@media(max-width:859px){.tc-img-col{order:2}.tc-txt-col{order:1}}" : ""}
+        .tc-mobile-paypal { display: none; }
+        @media(max-width:859px) { .tc-mobile-paypal { display: flex; } }
+      `}</style>
+
+      {/* Mobile-only PayPal CTA — shown above everything on small screens */}
+      {isPayPalCta && ctaHref && (
+        <div className="tc-mobile-paypal" style={{
+          maxWidth: 1280, margin: "0 auto 28px",
+          flexDirection: "column", alignItems: "center", gap: 12,
+          background: "#fff", borderRadius: 12, padding: "24px 20px",
+          boxShadow: "0 2px 16px rgba(0,0,0,0.08)", textAlign: "center",
+        }}>
+          <p style={{ fontSize: 14, fontWeight: 700, color: "#0f172a", margin: 0 }}>
+            Support Wesley Paul Ministries
+          </p>
+          <p style={{ fontSize: 13, color: "#64748b", margin: 0 }}>
+            Tap below to donate securely via PayPal
+          </p>
+          <a
+            href={ctaHref}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 10,
+              padding: "14px 32px", background: "#0070BA", color: "#fff",
+              borderRadius: 8, fontWeight: 700, fontSize: 16,
+              textDecoration: "none", width: "100%", maxWidth: 320,
+              boxShadow: "0 4px 14px rgba(0,112,186,0.35)",
+            }}
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M7.144 19.532l1.049-5.751c.11-.605.691-1.002 1.304-.88l.054.01c2.516.47 6.857.12 8.99-4.19.028-.056.054-.113.08-.17.36-.78.54-1.64.51-2.51-.06-1.8-1.07-3.14-2.68-3.69C15.43 2.12 14.38 2 13.25 2H6.01c-.65 0-1.21.47-1.32 1.11L2.03 17.41c-.11.64.37 1.23 1.02 1.23H5.83c.38 0 .74-.17.98-.46.24-.29.34-.67.28-1.04l-.19-1.06.22 3.43h.01z"/>
+              <path d="M20.89 8.31c-.21 1.52-.92 2.86-2.04 3.78-1.47 1.21-3.5 1.66-5.87 1.31l-.05-.01c-.61-.12-1.19.29-1.3.9l-1.03 5.67H8.97l-.22-3.43-.22-1.22-1.05-5.78c-.11-.63.37-1.22 1.01-1.22h4.75c2.66 0 4.71.36 5.93 1.18.58.39 1.02.9 1.29 1.51.1.22.17.47.21.74l.23-.43v.01z"/>
+            </svg>
+            {ctaLabel || "Donate via PayPal"}
+          </a>
+          {ctaSecondaryLabel && ctaSecondaryHref && (
+            <a href={ctaSecondaryHref} style={{ fontSize: 13, color: "#2070B8", textDecoration: "underline" }}>
+              {ctaSecondaryLabel}
+            </a>
+          )}
+        </div>
+      )}
+
       <div style={{ maxWidth: 1280, margin: "0 auto" }}>
-        <div style={{ display: "grid", gridTemplateColumns: `repeat(auto-fit, minmax(min(100%, 380px), 1fr))`, gap: "3rem", alignItems: stickyImage ? "start" : "center" }}
-          className={stickyImage ? "two-col-sticky" : undefined}>
-          <style>{stickyImage ? `@media(min-width:860px){.two-col-sticky{grid-template-columns:${colRatio} !important}.two-col-sticky-img{position:sticky;top:88px;align-self:start}}` : ""}</style>
-          {imageSide === "left" ? <>{imgCol}{textCol}</> : <>{textCol}{imgCol}</>}
+        <div className={`tc-grid${stickyImage ? " two-col-sticky" : ""}`}>
+          <div className="tc-img-col">{imgCol}</div>
+          <div className="tc-txt-col">{textCol}</div>
         </div>
       </div>
     </section>
