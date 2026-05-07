@@ -5,7 +5,7 @@
  * Outputs/accepts HTML. No external dependencies.
  */
 
-import { useEffect, useRef, useCallback, useState } from "react";
+import { useEffect, useRef, useCallback, useState, useId } from "react";
 import {
   Bold, Italic, Underline, AlignLeft, AlignCenter, AlignRight,
   List, ListOrdered, Link, Image as ImageIcon, Quote,
@@ -54,8 +54,12 @@ function ToolbarBtn({ title, active, onClick, children }: {
 
 export default function RichTextEditor({ value, onChange, onImagePick, minHeight = 320, placeholder = "Write your content here…" }: Props) {
   const editorRef = useRef<HTMLDivElement>(null);
+  const uid = useId();
+  const checkboxId = `rte-newtab-${uid}`;
   const [linkDialogOpen, setLinkDialogOpen] = useState(false);
-  const [linkUrl, setLinkUrl] = useState("https://");
+  const [linkUrl, setLinkUrl] = useState("");
+  const [linkText, setLinkText] = useState("");
+  const [linkNewTab, setLinkNewTab] = useState(true);
   const savedRangeRef = useRef<Range | null>(null);
 
   // Keep editor HTML in sync when value changes externally
@@ -90,6 +94,7 @@ export default function RichTextEditor({ value, onChange, onImagePick, minHeight
   };
 
   const restoreRange = () => {
+    editorRef.current?.focus();
     const sel = window.getSelection();
     if (sel && savedRangeRef.current) {
       sel.removeAllRanges();
@@ -98,10 +103,17 @@ export default function RichTextEditor({ value, onChange, onImagePick, minHeight
   };
 
   const insertLink = () => {
+    if (!linkUrl) return;
     restoreRange();
-    if (linkUrl && linkUrl !== "https://") exec("createLink", linkUrl);
+    const sel = window.getSelection();
+    const hasSelection = sel && sel.toString().trim().length > 0;
+    const displayText = linkText.trim() || (hasSelection ? sel!.toString() : linkUrl);
+    const target = linkNewTab ? ' target="_blank" rel="noopener noreferrer"' : "";
+    exec("insertHTML", `<a href="${linkUrl}"${target}>${displayText}</a>`);
     setLinkDialogOpen(false);
-    setLinkUrl("https://");
+    setLinkUrl("");
+    setLinkText("");
+    setLinkNewTab(true);
   };
 
   const insertImage = useCallback((url: string) => {
@@ -160,7 +172,15 @@ export default function RichTextEditor({ value, onChange, onImagePick, minHeight
         <div style={SEP} />
 
         {/* Link */}
-        <ToolbarBtn title="Insert link" onClick={() => { saveRange(); setLinkDialogOpen(true); }}><Link size={13} /></ToolbarBtn>
+        <ToolbarBtn title="Insert link" onClick={() => {
+          saveRange();
+          const sel = window.getSelection();
+          const selected = sel ? sel.toString().trim() : "";
+          setLinkText(selected);
+          setLinkUrl("");
+          setLinkNewTab(true);
+          setLinkDialogOpen(true);
+        }}><Link size={13} /></ToolbarBtn>
 
         {/* Image */}
         {onImagePick && (
@@ -179,24 +199,64 @@ export default function RichTextEditor({ value, onChange, onImagePick, minHeight
 
       {/* ── Link dialog ── */}
       {linkDialogOpen && (
-        <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", background: "#eff6ff", borderBottom: "1px solid #bfdbfe" }}>
-          <span style={{ fontSize: 12, fontWeight: 600, color: "#2070B8", whiteSpace: "nowrap" }}>Insert Link:</span>
-          <input
-            autoFocus
-            value={linkUrl}
-            onChange={e => setLinkUrl(e.target.value)}
-            onKeyDown={e => { if (e.key === "Enter") insertLink(); if (e.key === "Escape") setLinkDialogOpen(false); }}
-            style={{ flex: 1, padding: "5px 10px", border: "1px solid #bfdbfe", borderRadius: 5, fontSize: 13, outline: "none" }}
-            placeholder="https://example.com"
-          />
-          <button onMouseDown={e => { e.preventDefault(); insertLink(); }}
-            style={{ padding: "5px 14px", background: "#2070B8", color: "#fff", border: "none", borderRadius: 5, fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
-            Insert
-          </button>
-          <button onMouseDown={e => { e.preventDefault(); setLinkDialogOpen(false); }}
-            style={{ display: "flex", background: "transparent", border: "none", cursor: "pointer", color: "#94a3b8", padding: 4 }}>
-            <X size={14} />
-          </button>
+        <div style={{ position: "fixed", inset: 0, zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.35)" }}
+          onMouseDown={e => { if (e.target === e.currentTarget) setLinkDialogOpen(false); }}>
+          <div style={{ background: "#fff", borderRadius: 12, padding: "24px 28px", width: 420, boxShadow: "0 12px 40px rgba(0,0,0,0.18)", border: "1px solid #e2e8f0" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
+              <span style={{ fontSize: 15, fontWeight: 700, color: "#0f172a" }}>Insert Link</span>
+              <button onMouseDown={e => { e.preventDefault(); setLinkDialogOpen(false); }}
+                style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8", padding: 4, display: "flex" }}>
+                <X size={16} />
+              </button>
+            </div>
+
+            <div style={{ marginBottom: 14 }}>
+              <label style={{ fontSize: 12, fontWeight: 600, color: "#374151", display: "block", marginBottom: 5 }}>Link Text</label>
+              <input
+                autoFocus={!linkText}
+                value={linkText}
+                onChange={e => setLinkText(e.target.value)}
+                onKeyDown={e => { if (e.key === "Enter") insertLink(); if (e.key === "Escape") setLinkDialogOpen(false); }}
+                style={{ width: "100%", padding: "8px 11px", border: "1px solid #d1d5db", borderRadius: 7, fontSize: 13, outline: "none", boxSizing: "border-box" }}
+                placeholder="e.g. Download PDF"
+              />
+              <span style={{ fontSize: 11, color: "#94a3b8", marginTop: 3, display: "block" }}>Leave blank to use selected text</span>
+            </div>
+
+            <div style={{ marginBottom: 14 }}>
+              <label style={{ fontSize: 12, fontWeight: 600, color: "#374151", display: "block", marginBottom: 5 }}>URL / Link</label>
+              <input
+                autoFocus={!!linkText}
+                value={linkUrl}
+                onChange={e => setLinkUrl(e.target.value)}
+                onKeyDown={e => { if (e.key === "Enter") insertLink(); if (e.key === "Escape") setLinkDialogOpen(false); }}
+                style={{ width: "100%", padding: "8px 11px", border: "1px solid #d1d5db", borderRadius: 7, fontSize: 13, outline: "none", boxSizing: "border-box" }}
+                placeholder="https://example.com"
+              />
+            </div>
+
+            <div style={{ marginBottom: 20, display: "flex", alignItems: "center", gap: 8 }}>
+              <input
+                type="checkbox"
+                id={checkboxId}
+                checked={linkNewTab}
+                onChange={e => setLinkNewTab(e.target.checked)}
+                style={{ width: 15, height: 15, cursor: "pointer", accentColor: "#2070B8" }}
+              />
+              <label htmlFor={checkboxId} style={{ fontSize: 13, color: "#374151", cursor: "pointer" }}>Open in new tab</label>
+            </div>
+
+            <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+              <button onMouseDown={e => { e.preventDefault(); setLinkDialogOpen(false); }}
+                style={{ padding: "8px 18px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 7, fontSize: 13, fontWeight: 600, cursor: "pointer", color: "#64748b" }}>
+                Cancel
+              </button>
+              <button onMouseDown={e => { e.preventDefault(); insertLink(); }}
+                style={{ padding: "8px 20px", background: "#2070B8", color: "#fff", border: "none", borderRadius: 7, fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
+                Insert Link
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
