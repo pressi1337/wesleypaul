@@ -8,6 +8,7 @@ import BookingFormClient from "@/components/BookingFormClient";
 import CustomFormRenderer from "@/components/CustomFormRenderer";
 import VideoGridClient from "@/components/VideoGridClient";
 import StickyTwoCol from "@/components/StickyTwoCol";
+import ScrollToHash from "@/components/ScrollToHash";
 import pool from "@/lib/db";
 import { SUPPORTED_LANG_CODES } from "@/lib/languages";
 
@@ -74,9 +75,13 @@ async function getPageData(slug: string, lang: string) {
   } catch { return null; }
 }
 
+// These keys are structural config — never let a translation override them
+const STRUCTURAL_KEYS = new Set(["form_id", "layout", "bg_color", "bg_image", "bg_overlay", "bg_zoom", "bg_position", "image_side", "image_zoom", "image_position", "image_fit", "post_type", "count"]);
+
 function mergeContent(en: Record<string, unknown>, tr: Record<string, unknown>): Record<string, unknown> {
   const result: Record<string, unknown> = { ...en };
   for (const [key, trVal] of Object.entries(tr)) {
+    if (STRUCTURAL_KEYS.has(key)) continue;
     if (typeof trVal === "string" && trVal.trim()) { result[key] = trVal; }
     else if (Array.isArray(trVal) && Array.isArray(en[key])) {
       const engArr = en[key] as Record<string, unknown>[];
@@ -326,7 +331,7 @@ async function CustomFormSection({ content }: { content: Record<string, unknown>
     </div>
   );
   return (
-    <section id="contact" style={{ padding: "80px 24px", backgroundColor: bgColor, ...getBgStyle(content) }}>
+    <section style={{ padding: "80px 24px", backgroundColor: bgColor, ...getBgStyle(content) }}>
       <BgImageOverlay content={content} />
       <div style={{ maxWidth: 1200, margin: "0 auto", position: "relative", zIndex: 1 }}>
         {layout === "form_only" ? (
@@ -611,7 +616,11 @@ function renderSection(section: Section) {
     case "contact_form": return <ContactFormSection key={section.id} content={content} />;
     case "booking_form": return <BookingFormSection key={section.id} />;
     case "latest_posts": return <LatestPostsSection key={section.id} content={content} />;
-    case "custom_form":  return <CustomFormSection key={section.id} content={content} />;
+    case "custom_form":  return (
+      <div key={section.id} id="contact" style={{ scrollMarginTop: "15px" }}>
+        <CustomFormSection content={content} />
+      </div>
+    );
     case "donate_strip": return <DonateStripSection key={section.id} content={content} />;
     case "video_grid":   return <VideoGridSection key={section.id} content={content} />;
     default:             return null;
@@ -642,6 +651,7 @@ export default async function EventSlugPage({
   const activeLang = supportedCodes.has(lang) ? lang : "en";
   return (
     <main>
+      <ScrollToHash />
       {activeLang !== "en" && (
         <div style={{ background: "#f5a62315", borderBottom: "2px solid #f5a623", padding: "8px 24px", textAlign: "center", fontSize: 13, color: "#92400e", fontWeight: 500 }}>
           Viewing in {activeLang.toUpperCase()} —{" "}

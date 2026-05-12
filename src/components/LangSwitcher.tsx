@@ -53,7 +53,8 @@ export default function LangSwitcher({ dark = true }: { dark?: boolean }) {
         // Restore without adding to browser history
         const params = new URLSearchParams(window.location.search);
         params.set("lang", saved);
-        router.replace(`${pathname}?${params.toString()}`);
+        const hash = window.location.hash;
+        router.replace(`${pathname}?${params.toString()}${hash}`);
         setLang(saved);
       } else {
         setLang("en");
@@ -79,7 +80,8 @@ export default function LangSwitcher({ dark = true }: { dark?: boolean }) {
     if (code === "en") params.delete("lang");
     else params.set("lang", code);
     const qs = params.toString();
-    router.push(qs ? `${pathname}?${qs}` : pathname);
+    const hash = window.location.hash;
+    router.push(qs ? `${pathname}?${qs}${hash}` : `${pathname}${hash}`);
   };
 
   const allLangs = [EN, ...langs];
